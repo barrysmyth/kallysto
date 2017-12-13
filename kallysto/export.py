@@ -57,7 +57,21 @@ class Export():
         log_str: the corresponding log message.
     """
 
-    def __init__(self, name):
+    @classmethod
+    def all(cls):
+
+        # Get subclasses of Export.
+        subclasses = cls.__subclasses__()
+
+        # Get the export dicts for these subclasses.
+        dicts = [subclass.all() for subclass in subclasses]
+
+        # Create a combined dict from all the exports
+        all_exports = {key: val for d in dicts for key, val in d.items()}
+
+        return all_exports
+
+    def __init__(self, name, export, cls):
         """Initialise new export.
 
         This base class constructor is not intended to be called directly
@@ -74,6 +88,15 @@ class Export():
 
         # For convenience create a new builtin with same name as export.
         __builtins__[self.name] = self
+
+        # Check is name is already used.
+        if name in Export.all():
+            raise ValueError(
+                'Kallysto Error: Duplicate name, {}, is already used.'.format(
+                    name))
+        else:
+            # Add the new export object to the appropriate subclass export list.
+            cls._exports[name] = export
 
     def __gt__(self, publication):
         publication.export(self)
@@ -93,6 +116,12 @@ class Value(Export):
         value: the value of the Python expression to be exported.
     """
 
+    _exports = {}  # Class var containing dict of exports, keyed on name.
+
+    @classmethod
+    def all(cls):
+        return cls._exports
+
     def __init__(self, name, value):
         """
         Initialise a new Value instance.
@@ -101,7 +130,7 @@ class Value(Export):
           bridge: A instance of a kallysto ridge.
         """
 
-        super().__init__(name)
+        super().__init__(name, self, self.__class__)
 
         self.value = value
 
@@ -144,6 +173,12 @@ class Table(Export):
         caption: caption text for the table defintion.
     """
 
+    _exports = {}  # Class var containing dict of exports, keyed on name.
+
+    @classmethod
+    def all(cls):
+        return cls._exports
+
     def __init__(self, name, data, caption):
         """
         Initialise a new Table.
@@ -153,7 +188,7 @@ class Table(Export):
           data: dataframe corresponding to teh table.
           caption: table caption.
         """
-        super().__init__(name)
+        super().__init__(name, self, self.__class__)
 
         self.data = data
         self.data_file = "{}.csv".format(name)
@@ -204,6 +239,12 @@ class Figure(Export):
         format: the format of the image (e.g. pdf, png)
     """
 
+    _exports = {}  # Class var containing dict of exports, keyed on name.
+
+    @classmethod
+    def all(cls):
+        return cls._exports
+
     def __init__(self, name, image, data, caption, format):
         """
         Initialise a new Figure.
@@ -216,7 +257,7 @@ class Figure(Export):
           format: png or pdf.
         """
 
-        super().__init__(name)
+        super().__init__(name, self, self.__class__)
 
         self.image = image
         self.data = data
