@@ -74,6 +74,8 @@ class Publication():
 
                  formatter=Latex,
 
+                 write_defs=True,
+
                  overwrite=False, delete_log=False,
 
                  # Default configuration settings.
@@ -108,6 +110,7 @@ class Publication():
 
         self.exports = []  # To keep track of exports made thru pub.
         self.formatter = formatter
+        self.write_defs = write_defs
 
         # Setup  pub locations; i.e. paths to tex, data, figs, logs etc.
         self.setup_locations(title, notebook,
@@ -232,17 +235,24 @@ class Publication():
             'Creating {}{}.'.format(self.root_path, self.title))
         os.makedirs(self.root_path + self.title, exist_ok=True)
 
-        # Create main folders for tex, figs, data and logs if necessary.
-        for folder in [self.defs_path, self.figs_path,
-                       self.data_path, self.logs_path]:
+        folders = [self.figs_path, self.data_path, self.logs_path]
+
+        # Add defs path if definitions are to be written.
+        if self.write_defs:
+            folders.append(self.defs_path)
+
+        # Create main folders for defs, figs, data and logs if necessary.
+        for folder in folders:
             self.display_logger.info('Creating {}.'.format(folder))
             os.makedirs(folder, exist_ok=True)
 
-        # Create the definitions, log files if they don't already exist.
-        self.display_logger.info(
-            'Creating {} if it does not exist.'.format(self.defs_file))
-        open(self.defs_file, 'a').close()
+        # Create the definitions file is needed.
+        if self.write_defs:
+            self.display_logger.info(
+                'Creating {} if it does not exist.'.format(self.defs_file))
+            open(self.defs_file, 'a').close()
 
+        # Create logs file.
         self.display_logger.info(
             'Creating {} if it does not exist.'.format(self.logs_file))
         open(self.logs_file, 'a').close()
@@ -270,8 +280,9 @@ class Publication():
             "defs_{}:{}".format(self.title, self.notebook))
         self.defs_logger.setLevel(logging.INFO)
 
-        defs_logger_handler = logging.FileHandler(self.defs_file)
-        self.defs_logger.addHandler(defs_logger_handler)
+        if self.write_defs:
+            defs_logger_handler = logging.FileHandler(self.defs_file)
+            self.defs_logger.addHandler(defs_logger_handler)
 
     def __str__(self):
         return ("{root_path}{title}/\n"
@@ -292,7 +303,10 @@ class Publication():
         """Export the definition and log the export.
         """
 
-        self.defs_logger.info(export.def_str)
+        # If write_defs then write definitions file.
+        if self.write_defs:
+            self.defs_logger.info(export.def_str)
+
         self.audit_logger.info(export.log_str)
 
         self.exports.append(export)
