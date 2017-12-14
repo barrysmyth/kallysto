@@ -36,7 +36,6 @@
 import logging
 import os
 import sys
-from time import time, strftime
 from shutil import rmtree
 
 from kallysto.formatter import Latex
@@ -52,10 +51,7 @@ class Publication():
     subfolders can be configured through the constructor.
 
     Attributes:
-        exports: a list of the export objects made for the bridge.
-        value_template: the format specification for exporting a value.
-        table_template: the format specification for exporting a table.
-        figure_template: the format specification for exporting a figure.
+        exports: a list of the exports
         path: the path to the current notebook.
         root: the rel path from the notebook to the pub title's folder.
         title: the publication title.
@@ -107,7 +103,7 @@ class Publication():
         """
         # A simple display logger that writes progress to screen.
         self.display_logger = logging.getLogger(
-            "{}:{}".format(title, notebook))
+            "Kallysto:{}:{}: ".format(title, notebook))
         self.display_logger.setLevel(logging.INFO)
 
         self.exports = []  # To keep track of exports made thru pub.
@@ -128,9 +124,6 @@ class Publication():
 
         # Setup logging; defs logger and audit logger.
         self.setup_logging()
-
-        # Write to display/autid logs about the bridge creation.
-        # self.log_bridge_setup()
 
     def setup_locations(self, title, notebook,
                         root_path, main_path,
@@ -280,7 +273,7 @@ class Publication():
         defs_logger_handler = logging.FileHandler(self.defs_file)
         self.defs_logger.addHandler(defs_logger_handler)
 
-    def __repr__(self):
+    def __str__(self):
         return ("{root_path}{title}/\n"
                 "  {defs_path}{defs_file}\n"
                 "  {figs_path}\n"

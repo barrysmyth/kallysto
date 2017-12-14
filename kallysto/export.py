@@ -41,13 +41,23 @@ from datetime import datetime
 
 import pandas as pd
 
+# Some basic logging to display.
+display_logger = logging.getLogger("Kallysto: ")
+display_logger.setLevel(logging.INFO)
+
 
 class Export():
     """The base export class.
 
-    Each export is associated with a unique id, a (Latex) name and a creation
-    date.
+    Each export is associated with a unique id, a name and a creation date.
+    Exports are stored in the _exports dict, which is a class var, keyed on
+    export name.
 
+    Creating an export with an existing name generates a warning
+    and will fail unless overwrite is True. Consequently we need a way to
+    abort the object creation when the name is already taken and overwrite is
+    False. To do this we override the objects __new__ constructor to perform
+    the name check.
 
     Attributes:
         uid: unique id based on creation time.
@@ -58,20 +68,67 @@ class Export():
     """
 
     @classmethod
-    def all(cls):
+    def list(cls):
+        """ Return a list of all exports as a dict keyed on name.
+
+        The dict is generated dynamically from the _export class vars of all
+        subclasses of Export.
+        """
 
         # Get subclasses of Export.
         subclasses = cls.__subclasses__()
 
         # Get the export dicts for these subclasses.
-        dicts = [subclass.all() for subclass in subclasses]
+        dicts = [subclass.list() for subclass in subclasses]
 
         # Create a combined dict from all the exports
         all_exports = {key: val for d in dicts for key, val in d.items()}
 
         return all_exports
 
-    def __init__(self, name, export, cls):
+    @classmethod
+    def to(cls, publication):
+        """ Export all exports to publication.
+        """
+
+        for name, export in cls.list().items():
+            export > publication
+
+    def __new__(cls, *args, **kwargs):
+        """Create new export object subject to name-check.
+
+        The object constructor. If the export name already exists and
+        overwrite is False then generate a warning and don't return the object,
+        which ensures the object is not created or initialised. Otherwise
+        return the newly created object.
+
+        This constructor will not be called directly but rather by Value,
+        Table, Figure.
+        """
+
+        # Get the export name and overwrite status.
+        name = args[0]  # Get the name of the export for namecheck.
+        overwrite = kwargs['overwrite']
+
+        # overwrite is false and name is used (a key in Export.list())...
+        if (overwrite is False) & (name in Export.list()):
+
+            # Log a warning message.
+            display_logger.warn(
+                ("Warning: name {} already in use for {!r}.\n"
+                 "Use overwrite=True to override.").format(
+                    name, Export.list()[name]))
+
+            # Return None ensures object reation step is abandoned.
+            return None
+
+        # Otherwise, either the name is not used or overwrite is True so we
+        # create the object and return it.
+        else:
+            obj = super(Export, cls).__new__(cls)
+            return obj
+
+    def __init__(self, name, export, cls, overwrite=False):
         """Initialise new export.
 
         This base class constructor is not intended to be called directly
@@ -89,17 +146,33 @@ class Export():
         # For convenience create a new builtin with same name as export.
         __builtins__[self.name] = self
 
-        # Check is name is already used.
-        if name in Export.all():
-            raise ValueError(
-                'Kallysto Error: Duplicate name, {}, is already used.'.format(
-                    name))
-        else:
-            # Add the new export object to the appropriate subclass export list.
-            cls._exports[name] = export
+        # Add the new export object to the subclass export dict.
+        cls._exports[name] = self
+
+        # self.update_export_list(name, export, cls, overwrite)
 
     def __gt__(self, publication):
         publication.export(self)
+
+    def update_export_list(self, name, export, overwrite):
+        """Add new export to appropriate export dict.
+
+        Update class-based export dict to incldue the new export if it does
+        not already exist or is overwrite is True.
+        if the name does already exist and overwrite is False then warn.
+        """
+
+        # Check is name is already used before updating _exports.
+        if (overwrite is False) & (name in Export.list()):
+
+            # Raise an error if the name is already used.
+            display_logger.warn(
+                ("Warning: name {} already in use for {!r}.\n"
+                 "Use overwrite=True to override.").format(
+                    name, Export.list()[name]))
+        else:
+            # Add the new export object to the subclass export dict.
+            cls._exports[name] = export
 
 
 class Value(Export):
@@ -119,10 +192,13 @@ class Value(Export):
     _exports = {}  # Class var containing dict of exports, keyed on name.
 
     @classmethod
-    def all(cls):
+    def list(cls):
         return cls._exports
 
-    def __init__(self, name, value):
+    def __new__(cls, name, value, overwrite=False):
+        return super(Value, cls).__new__(cls, name, value, overwrite=overwrite)
+
+    def __init__(self, name, value, overwrite=False):
         """
         Initialise a new Value instance.
 
@@ -130,11 +206,16 @@ class Value(Export):
           bridge: A instance of a kallysto ridge.
         """
 
-        super().__init__(name, self, self.__class__)
+        super().__init__(name, self, self.__class__, overwrite)
 
         self.value = value
 
     def __repr__(self):
+        return ('Value({name!r}, {value!r})').format(
+            name=self.name,
+            value=self.value)
+
+    def __str__(self):
         return "VALUE,{uid},{created},{name},{value}".format(
             uid=self.uid, created=self.created,
             name=self.name, value=self.value)
@@ -176,10 +257,14 @@ class Table(Export):
     _exports = {}  # Class var containing dict of exports, keyed on name.
 
     @classmethod
-    def all(cls):
+    def list(cls):
         return cls._exports
 
-    def __init__(self, name, data, caption):
+    def __new__(cls, name, data, caption, overwrite=False):
+        return super(Table, cls).__new__(
+            cls, name, data, caption, overwrite=overwrite)
+
+    def __init__(self, name, data, caption, overwrite=False):
         """
         Initialise a new Table.
 
@@ -188,13 +273,19 @@ class Table(Export):
           data: dataframe corresponding to teh table.
           caption: table caption.
         """
-        super().__init__(name, self, self.__class__)
+        super().__init__(name, self, self.__class__, overwrite)
 
         self.data = data
         self.data_file = "{}.csv".format(name)
         self.caption = caption
 
     def __repr__(self):
+        return ('Table({name!r}, {data!r}, {caption!r})').format(
+            name=self.name,
+            data=self.data,
+            caption=self.caption)
+
+    def __str__(self):
         return "TABLE,{uid},{created},{name},{data_file}".format(
             uid=self.uid, created=self.created,
             name=self.name, data_file=self.data_file)
@@ -242,10 +333,17 @@ class Figure(Export):
     _exports = {}  # Class var containing dict of exports, keyed on name.
 
     @classmethod
-    def all(cls):
+    def list(cls):
         return cls._exports
 
-    def __init__(self, name, image, data, caption, format):
+    def __new__(cls,
+                name, image, data, caption, format='pdf', overwrite=False):
+        return super(Figure, cls).__new__(cls,
+                                          name, image, data, caption,
+                                          format=format, overwrite=overwrite)
+
+    def __init__(self,
+                 name, image, data, caption, format='pdf', overwrite=False):
         """
         Initialise a new Figure.
 
@@ -257,7 +355,7 @@ class Figure(Export):
           format: png or pdf.
         """
 
-        super().__init__(name, self, self.__class__)
+        super().__init__(name, self, self.__class__, overwrite)
 
         self.image = image
         self.data = data
@@ -271,6 +369,15 @@ class Figure(Export):
         self.fig_scale = 1     # Scaling of figures.
 
     def __repr__(self):
+        return ('Figure({name!r}, {image!r}, '
+                '{data!r}, {caption!r}, {format!r})').format(
+            name=self.name,
+            image=self.image,
+            data=self.data,
+            caption=self.caption,
+            format=self.format)
+
+    def __str__(self):
         return "FIGURE,{uid},{created},{name},{image_file},{data_file}".format(
             uid=self.uid, created=self.created,
             name=self.name, image_file=self.image_file,
