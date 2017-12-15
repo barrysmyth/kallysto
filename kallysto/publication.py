@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 # $$\                $$\ $$\                       $$\
 # $$ |               $$ |$$ |                      $$ |
 # $$ |  $$\ $$$$$$\  $$ |$$ |$$\   $$\  $$$$$$$\ $$$$$$\    $$$$$$\
@@ -33,6 +32,69 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""
+Create a  publication linking a notebook to a publication title.
+
+Creates a set of subfolders within a publication title folder inside
+the publication root of the project. The location of this publication
+root, relative to a notebook, and the names of the created
+subfolders can be configured through the constructor.
+
+Also includes configurations for whether or not to overwrite existing
+folders/files/logs as well as whether to create seperate definition files,
+and when definition files are to be created, which formatter to use.
+
+Example Usage:
+
+The following doctests check the basic publication setup by creating two
+publication targets.
+
+>>> from kallysto.publication import Publication
+
+# Create a new publication as an export target (interim_report). It is assumed
+# this code is run in a notebook (notebook_0) and that the interim_report is
+# located at 'tests/sandbox/' relative to the notebook.
+>>> interim = Publication('notebook_0', 'interim_report', write_defs=False, root_path='tests/sandbox/', overwrite=True, delete_log=True)
+
+# Create another publication as an export target (final_report). It is assumed
+# this code is run in a notebook (notebook_1) and that the final_report is
+# located at 'tests/sandbox/' relative to the notebook.
+>>> final = Publication('notebook_1', 'final_report', root_path='tests/sandbox/', overwrite=True, delete_log=True)
+
+>>> interim
+Publication(notebook_0, interim_report, formatter=<class 'kallysto.formatter.Latex'>, write_defs=False, overwrite=True, delete_log=True, root_path=tests/sandbox/, main_path=../../, figs_dir=figs/, defs_dir=defs/, data_dir=data/, logs_dir=logs/, definitions_file=tests/sandbox/interim_report/defs/notebook_0/_definitions.tex, logs_file='_kallysto.log')
+>>> final
+Publication(notebook_1, final_report, formatter=<class 'kallysto.formatter.Latex'>, write_defs=True, overwrite=True, delete_log=True, root_path=tests/sandbox/, main_path=../../, figs_dir=figs/, defs_dir=defs/, data_dir=data/, logs_dir=logs/, definitions_file=tests/sandbox/final_report/defs/notebook_1/_definitions.tex, logs_file='_kallysto.log')
+
+# Printing the publication objects shows the main target locations.
+>>> print(interim)
+Locations:
+  tests/sandbox/interim_report/
+    tests/sandbox/interim_report/defs/notebook_0/_definitions.tex
+    tests/sandbox/interim_report/figs/notebook_0/
+    tests/sandbox/interim_report/data/notebook_0/
+    tests/sandbox/interim_report/logs/_kallysto.log
+Settings:
+  overwrite: True
+  delete_log: True
+  formatter: <class 'kallysto.formatter.Latex'>
+  write_defs: False
+
+>>> print(final)
+Locations:
+  tests/sandbox/final_report/
+    tests/sandbox/final_report/defs/notebook_1/_definitions.tex
+    tests/sandbox/final_report/figs/notebook_1/
+    tests/sandbox/final_report/data/notebook_1/
+    tests/sandbox/final_report/logs/_kallysto.log
+Settings:
+  overwrite: True
+  delete_log: True
+  formatter: <class 'kallysto.formatter.Latex'>
+  write_defs: True
+"""
+
+
 import logging
 import os
 import sys
@@ -43,31 +105,47 @@ from kallysto.export import Value, Table, Figure
 
 
 class Publication():
-    """Create a  bridge linking a notebook to a publication title.
+    """Create a  publication linking a notebook to a publication title.
 
     Creates a set of subfolders within a publication title folder inside
     the publication root of the project. The location of this publication
     root, relative to a notebook, and the names of the created
     subfolders can be configured through the constructor.
 
+    Also includes configurations for whether or not to overwrite existing
+    folders/files/logs as well as whether to create seperate definition files,
+    and when definition files are to be created, which formatter to use.
+
     Attributes:
+
+        display_logger: basic logger for information and warning messages.
+        audit_logger: main export logger writing to log_file.
+
         exports: a list of the exports
-        path: the path to the current notebook.
-        root: the rel path from the notebook to the pub title's folder.
-        title: the publication title.
-        notebook: the notebook name.
-        figs_dir: the name of the figure subfolder.
-        data_dir: the name of the data subfolder.
-        logs_dir: the name of the logs folder.
-        defintions_file_name: the name of the source defintiions file.
-        logs_file_name: the name of the central log file.
-        pubroot: the path to the publication title.
-        src: the path to the src subfolder.
-        definitions_file: the path to the definitions file.
-        figs: the path to the figs subfolder.
-        data: the path to the data subfolder.
-        logs: the path to the logs subfolder.
-        log_file: the path to the central log file itself.
+        formatter: a format class for formatting the export defintions.
+        write_defs: whether or not to write a defintions file.
+
+        overwrite: whether or not to overwrite existing publications files/dirs.
+        delete_log: whether or not to delete existing log.
+
+        title: publication title (user defined).
+        notebook: source notebook name or nickname (user defined).
+
+        root_path: relative path from source notebook to publication root.
+        main_path: relative path from publication main (e.g. main.tex) to root.
+
+        figs_dir: directory name for fig exports.
+        data_dir: directory name for data exports (for tables & figures)
+        defs_dir: directory name for export definitions.
+        logs_dir: directory name for log.
+
+        figs_path: path to figs_dir
+        data_path: path to data_dir
+        defs_path: path to defs_dir
+        logs_path: path to logs_dir
+
+        defs_file: name of definitions file.
+        logs_file: name of log file.
     """
 
     def __init__(self, notebook, title,
@@ -90,17 +168,17 @@ class Publication():
         """Constructor for a new pub, connecting a notebook to pub title.
 
         Args:
-            notebook: the notebook in which the bridge is created.
+            notebook: the notebook in which the publication is created.
             title: the title of the publication.
 
-            root: the location of the  publication root rel. to notebook.
+            root_path: the relative path to the publication from the notebook.
 
             defs_dir: the name of the defintions subfolder (e.g. defs).
             figs_dir: the name of the subfolder to hold images for figs.
             data_dir: the subfolder to hold data files for tables/figs.
             logs_dir: the name of the subfolder holding the kallysto log.
 
-            overwrite: If true delete pub folders and files for bridge.
+            overwrite: If true delete pub folders and files for publication.
             delete_log: If true rm log folder & file for the publication.
         """
         # A simple display logger that writes progress to screen.
@@ -119,8 +197,10 @@ class Publication():
                              definitions_file, logs_file)
 
         # If overwrite==True then delete files associated with the pub.
-        if overwrite:
-            self.cleanup_notebook_files(delete_log=delete_log)
+        self.overwrite = overwrite
+        self.delete_log = delete_log
+        if self.overwrite:
+            self.cleanup_notebook_files()
 
         # Create/setup the notebook directories (src/figs/data/logs).
         self.setup_notebook_directories()
@@ -139,7 +219,7 @@ class Publication():
         to the export definitions file and the main log file.
         """
 
-        # Setting up basic bridge parameters:
+        # Setting up basic publication parameters:
         self.path = os.getcwd()  # Current (calling notebook) directory.
 
         self.title = title
@@ -164,21 +244,20 @@ class Publication():
         self.defs_file = self.defs_path + definitions_file
         self.logs_file = self.logs_path + logs_file
 
-    def cleanup_notebook_files(self, delete_log=False):
-        """Cleanup existing bridge files if they exist.
+    def cleanup_notebook_files(self):
+        """Cleanup existing publication files if they exist.
 
-        Delete folders and files associated with the current bridge. Dont
+        Delete folders and files associated with the current publication. Dont
         delete the central log unless expressly indicated by delete_log.
 
         Args:
             delete_log: If True, delete central log file.
         """
         self.display_logger.info(
-            'Removing export files for {}:{}'.format(
-                self.title, self.notebook))
+            'Removing export files for {}:{}'.format(self.title, self.notebook))
 
         # If delete_log == True then delete log file.
-        if delete_log:
+        if self.delete_log:
             try:
                 self.display_logger.info(
                     'Trying to remove {}.'.format(self.logs_file))
@@ -202,7 +281,7 @@ class Publication():
 
         # Prepare to remove the notebook folders for defs, figs and data.
         folders = [self.defs_path, self.figs_path, self.data_path]
-        if delete_log:
+        if self.delete_log:
             folders.append(self.logs_path)
 
         # Next, delete the folders themselves.
@@ -219,7 +298,7 @@ class Publication():
                 pass
 
     def setup_notebook_directories(self):
-        """Create the folders and files for a new bridge."""
+        """Create the folders and files for a new publication."""
 
         self.display_logger.info(
             'Creating export locations for {}:{}.'.format(
@@ -284,12 +363,45 @@ class Publication():
             defs_logger_handler = logging.FileHandler(self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 
+    def __repr__(self):
+        return ("Publication({notebook}, {title}, "
+                "formatter={formatter}, "
+                "write_defs={write_defs}, "
+                "overwrite={overwrite}, delete_log={delete_log}, "
+                "root_path={root_path}, "
+                "main_path={main_path}, "
+                "figs_dir={figs_dir}, "
+                "defs_dir={defs_dir}, "
+                "data_dir={data_dir}, "
+                "logs_dir={logs_dir}, "
+                "definitions_file={definitions_file}, "
+                "logs_file='_kallysto.log')").format(
+            notebook=self.notebook,
+            title=self.title,
+            formatter=self.formatter,
+            write_defs=self.write_defs,
+            overwrite=self.overwrite,
+            delete_log=self.delete_log,
+            root_path=self.root_path,
+            main_path=self.main_path,
+            figs_dir=self.figs_dir,
+            defs_dir=self.defs_dir,
+            data_dir=self.data_dir,
+            logs_dir=self.logs_dir,
+            definitions_file=self.defs_file,)
+
     def __str__(self):
-        return ("{root_path}{title}/\n"
-                "  {defs_path}{defs_file}\n"
-                "  {figs_path}\n"
-                "  {data_path}\n"
-                "  {logs_path}{logs_file}\n").format(
+        return ("Locations:\n"
+                "  {root_path}{title}/\n"
+                "    {defs_path}{defs_file}\n"
+                "    {figs_path}\n"
+                "    {data_path}\n"
+                "    {logs_path}{logs_file}\n"
+                "Settings:\n"
+                "  overwrite: {overwrite}\n"
+                "  delete_log: {delete_log}\n"
+                "  formatter: {formatter}\n"
+                "  write_defs: {write_defs}").format(
             title=self.title,
             root_path=self.root_path,
             defs_path=self.defs_path,
@@ -297,7 +409,11 @@ class Publication():
             figs_path=self.figs_path,
             data_path=self.data_path,
             logs_path=self.logs_path,
-            logs_file=self.logs_file.split('/')[-1])
+            logs_file=self.logs_file.split('/')[-1],
+            overwrite=self.overwrite,
+            delete_log=self.delete_log,
+            formatter=self.formatter,
+            write_defs=self.write_defs,)
 
     def export(self, export):
         """Export the definition and log the export.
@@ -310,6 +426,8 @@ class Publication():
         self.audit_logger.info(export.log_str)
 
         self.exports.append(export)
+
+        return export
 
     def delete(self):
         self.cleanup_notebook_files(delete_log=True)

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 # $$\                $$\ $$\                       $$\
 # $$ |               $$ |$$ |                      $$ |
 # $$ |  $$\ $$$$$$\  $$ |$$ |$$\   $$\  $$$$$$$\ $$$$$$\    $$$$$$\
@@ -33,8 +32,133 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+""" The basic export types used by Kallysto.
+
+Each type of export represents a data structure to capture the key data
+associated with the export type, whether a value, a figure or a table, for
+example, so that the export may be 'exported' to a specific publication at some
+future time. Typically this 'export' process will involve creating a definition
+of the exported item (such as a latex defintion), which can be imported into a
+publication, and a set of associated files, such as images and/or datafiles.
+
+The Export class is the base class and provides a core set of functionality
+shared by its subclasses (Value, table, Figure), which define the different
+types of exports. For example, Export defines key attributes shared among the
+different export types including, a unique id (uid), creation date (created),
+unique export name (name) the export definition string (def_str), such as a
+latex definition string, the log string (log_str) to be used in the Kallysto
+log.
+
+The Export class also manages a dict of created exports and is responsible for
+ensuring that exports with duplicate names are managed correctly (either avoided
+or overwritten).
+
+    e.g. Export.list() -> returns a dict of created exports.
+         Figure.list() -> returns a dict of created figures etc.
+
+The Export class also includes functionality to allow all exports to be
+exported to a given publication in bulk.
+
+    e.g. Export.to(pub) -> exports all exports to pub.
+         Table.to(pub) -> exports all tables to pub etc.
+
+Currently there are three such subclasses -- Value, Table, and Figure -- and
+each is associated with a particular set of attributes. Typically each export
+is associated with a definition (e.g. a Latex \newcommand) so that the export
+can be included in some publication source. Some exports (Table, Figure) are
+also associated with secondary files such as images and data.
+
+A Value export is simply a named Python (atomic) value such as a number or
+string. In fact any Python expression that can be rendered as a string can
+be exported as a value.
+
+A Table export is a Pandas dataframe. In addition to a suitable export
+defintion (e.g. a latex definition) a Table export is also associated with the
+actual data which will be saved as a csv when the export is exported to a
+publication. A Table export can also have a caption.
+
+A Figure export is an image (e.g. a matpolotlib image). In addition to the
+defintion (e.g. a Latex figure defintion) a Figure export is associated with
+an image file (pdf/png) and a corresponding data file, saved as a csv upon
+export to a publication, plus a caption.
+
+Example Usage:
+
+The follow doctests create a sample publication and then create and export
+example value, table, and figure items to this publication.
+
+>>> from kallysto.export import Export, Figure, Value, Table
+>>> from kallysto.publication import Publication
+>>> import pandas as pd
+>>> import matplotlib.pylab as plt
+>>> import numpy as np
+
+# Create a new publication as an export target (final_report). It is assumed
+# this code is run in a notebook (notebook_1) and that the final_report is
+# located at 'tests/sandbox/' relative to the notebook.
+>>> my_pub = Publication('notebook_1', 'final_report', root_path='tests/sandbox/')
+
+# A sample dataframe of quarterly sales figures.
+>>> df = pd.DataFrame([(1, 100),(2, 120),(3, 110),(4,200)],columns=['Qtr', 'Sales'])
+>>> df
+   Qtr  Sales
+0    1    100
+1    2    120
+2    3    110
+3    4    200
+
+# An example Value export for the mean sales calculation.
+>>> mean_sales = Value('valueMeanSales', df['Sales'].mean())
+>>> mean_sales
+Value('valueMeanSales', 132.5)
+>>> mean_sales.value
+132.5
+>>> mean_sales.name
+'valueMeanSales'
+>>> mean_sales > my_pub
+Value('valueMeanSales', 132.5)
+
+# An example Table export for the dataframe.
+>>> sales_table = Table('tableQuarterlySales', df, caption="Quartery sales table.")
+>>> sales_table > my_pub
+Table('tableQuarterlySales',    Qtr  Sales
+0    1    100
+1    2    120
+2    3    110
+3    4    200, 'Quartery sales table.')
+
+# An example Figure export of sales vs quarter.
+>>> fig, ax = plt.subplots()
+>>> ax.plot(df['Qtr'], df['Sales'])  # doctest:+ELLIPSIS
+[<matplotlib.lines.Line2D object at ...>]
+>>> sales_fig = Figure('figQuarterlySales', image=fig, data=df, caption="Quarterly sales data.")
+>>> sales_fig > my_pub  # doctest:+ELLIPSIS
+Figure('figQuarterlySales', <matplotlib.figure.Figure ...>,    Qtr  Sales
+...
+3    4    200, 'Quarterly sales data.', 'pdf')
+
+# All of the export objects created.
+>>> Export.list()  # doctest:+ELLIPSIS
+OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5)), ('tableQuarterlySales', Table('tableQuarterlySales',    Qtr  Sales
+..., 'Quartery sales table.')), ('figQuarterlySales', Figure('figQuarterlySales', <matplotlib.figure.Figure object at ...>,    Qtr  Sales
+..., 'Quarterly sales data.', 'pdf'))])
+
+# Bulk export all of the exports.
+>>> Export.to(my_pub)
+['valueMeanSales', 'tableQuarterlySales', 'figQuarterlySales']
+
+# It is also possible to bulk exports based on export type.
+>>> Value.to(my_pub)
+['valueMeanSales']
+>>> Table.to(my_pub)
+['tableQuarterlySales']
+>>> Figure.to(my_pub)
+['figQuarterlySales']
+"""
+
 import logging
 import os
+from collections import OrderedDict
 
 from time import time, strftime
 from datetime import datetime
@@ -49,12 +173,12 @@ display_logger.setLevel(logging.INFO)
 class Export():
     """The base export class.
 
+    An export is a piece of data that is available for export.
     Each export is associated with a unique id, a name and a creation date.
-    Exports are stored in the _exports dict, which is a class var, keyed on
-    export name.
+    Exports are stored in the classvar _exports dict, keyed on export name.
 
-    Creating an export with an existing name generates a warning
-    and will fail unless overwrite is True. Consequently we need a way to
+    Creating an export with a name used by another export generates a warning
+    and will fail, unless overwrite is True. Consequently we need a way to
     abort the object creation when the name is already taken and overwrite is
     False. To do this we override the objects __new__ constructor to perform
     the name check.
@@ -62,7 +186,7 @@ class Export():
     Attributes:
         uid: unique id based on creation time.
         created: creation time.
-        name: every export has a user-defined name, set at export time.
+        name: every export has a unique user-defined name, set at export time.
         def_str: the export defintion.
         log_str: the corresponding log message.
     """
@@ -71,7 +195,7 @@ class Export():
     def list(cls):
         """ Return a list of all exports as a dict keyed on name.
 
-        The dict is generated dynamically from the _export class vars of all
+        The dict is generated dynamically from the _export classvars of all
         subclasses of Export.
         """
 
@@ -79,10 +203,13 @@ class Export():
         subclasses = cls.__subclasses__()
 
         # Get the export dicts for these subclasses.
-        dicts = [subclass.list() for subclass in subclasses]
+        # dicts = [subclass.list() for subclass in subclasses]
 
         # Create a combined dict from all the exports
-        all_exports = {key: val for d in dicts for key, val in d.items()}
+        all_exports = OrderedDict()
+        for d in [subclass.list() for subclass in subclasses]:
+            for name, export in d.items():
+                all_exports[name] = export
 
         return all_exports
 
@@ -93,6 +220,8 @@ class Export():
 
         for name, export in cls.list().items():
             export > publication
+
+        return list(cls.list().keys())
 
     def __new__(cls, *args, **kwargs):
         """Create new export object subject to name-check.
@@ -143,16 +272,13 @@ class Export():
         self.def_str = None
         self.log_str = None
 
-        # For convenience create a new builtin with same name as export.
-        __builtins__[self.name] = self
-
         # Add the new export object to the subclass export dict.
         cls._exports[name] = self
 
         # self.update_export_list(name, export, cls, overwrite)
 
     def __gt__(self, publication):
-        publication.export(self)
+        return publication.export(self)
 
     def update_export_list(self, name, export, overwrite):
         """Add new export to appropriate export dict.
@@ -188,8 +314,7 @@ class Value(Export):
     Attributes:
         value: the value of the Python expression to be exported.
     """
-
-    _exports = {}  # Class var containing dict of exports, keyed on name.
+    _exports = OrderedDict()  # Dict of exports, keyed on name.
 
     @classmethod
     def list(cls):
@@ -234,7 +359,7 @@ class Value(Export):
             notebook=publication.notebook,
             export=self)
 
-        super().__gt__(publication)
+        return super().__gt__(publication)
 
 
 class Table(Export):
@@ -253,8 +378,7 @@ class Table(Export):
         data_file: name of the data_file.
         caption: caption text for the table defintion.
     """
-
-    _exports = {}  # Class var containing dict of exports, keyed on name.
+    _exports = OrderedDict()  # Dict of exports, keyed on name.
 
     @classmethod
     def list(cls):
@@ -308,7 +432,7 @@ class Table(Export):
         # Save the data to .csv
         self.data.to_csv(publication.data_path + self.data_file)
 
-        super().__gt__(publication)
+        return super().__gt__(publication)
 
 
 class Figure(Export):
@@ -329,8 +453,7 @@ class Figure(Export):
         caption: caption text for the figure.
         format: the format of the image (e.g. pdf, png)
     """
-
-    _exports = {}  # Class var containing dict of exports, keyed on name.
+    _exports = OrderedDict()  # Dict of exports, keyed on name.
 
     @classmethod
     def list(cls):
@@ -406,4 +529,4 @@ class Figure(Export):
         self.image.savefig(publication.figs_path +
                            self.image_file, format=self.format)
 
-        super().__gt__(publication)
+        return super().__gt__(publication)

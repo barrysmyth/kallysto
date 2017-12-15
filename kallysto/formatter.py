@@ -1,13 +1,4 @@
 # -*- coding: utf-8 -*-
-"""Formatters to produce export defintiions.
-
-Formatters are responsible for producing the export definitions. Each
-exportable object requires a separate exporter. Each exporter is implemented
-as a static method associated with a user-defined formatter class. For example
-below we define a Latex formatter class with methods for value, table, and
-figure fromatters. Each formatter method accepts an export object and a
-publication object as arguments so that the formatted definition can refer to
-data from the export object or the publication."""
 
 
 # $$\                $$\ $$\                       $$\
@@ -41,6 +32,16 @@ data from the export object or the publication."""
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+"""Formatters to produce export defintiions.
+
+Formatters are responsible for producing the export definitions. Each
+exportable object requires a separate exporter. Each exporter is implemented
+as a static method associated with a user-defined formatter class. For example
+below we define a Latex formatter class with methods for value, table, and
+figure fromatters. Each formatter method accepts an export object and a
+publication object as arguments so that the formatted definition can refer to
+data from the export object or the publication."""
 
 import pandas as pd
 from time import time, strftime
