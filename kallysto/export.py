@@ -32,7 +32,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-""" The basic export types used by Kallysto.
+""" Kallysto Export Types.
 
 Each type of export represents a data structure to capture the key data
 associated with the export type, whether a value, a figure or a table, for
@@ -96,8 +96,8 @@ example value, table, and figure items to this publication.
 # Create a new publication as an export target (final_report). It is assumed
 # this code is run in a notebook (notebook_1) and that the final_report is
 # located at 'tests/sandbox/' relative to the notebook.
->>> my_pub = Publication(\
-'notebook_1', 'final_report', root_path='tests/sandbox/')
+>>> final = Publication('notebook_1', 'final_report', \
+root_path='tests/sandbox/', overwrite=True, delete_log=True)
 
 # A sample dataframe of quarterly sales figures.
 >>> df = pd.DataFrame([(1, 100),(2, 120),(3, 110),(4,200)],\
@@ -124,13 +124,13 @@ Value('valueMeanSales', 132.5)
 <class 'NoneType'>
 >>> mean_sales = Value('valueMeanSales', df['Sales'].mean(), overwrite=True)
 
->>> mean_sales > my_pub
+>>> mean_sales > final
 Value('valueMeanSales', 132.5)
 
 # An example Table export for the dataframe.
 >>> sales_table = Table('tableQuarterlySales', df, \
 caption="Quartery sales table.")
->>> sales_table > my_pub
+>>> sales_table > final
 Table('tableQuarterlySales',    Qtr  Sales
 0    1    100
 1    2    120
@@ -143,7 +143,7 @@ Table('tableQuarterlySales',    Qtr  Sales
 [<matplotlib.lines.Line2D object at ...>]
 >>> sales_fig = Figure('figQuarterlySales', image=fig, data=df, \
 caption="Quarterly sales data.")
->>> sales_fig > my_pub  # doctest:+ELLIPSIS
+>>> sales_fig > final  # doctest:+ELLIPSIS
 Figure('figQuarterlySales', <matplotlib.figure.Figure ...>,    Qtr  Sales
 ...
 3    4    200, 'Quarterly sales data.', 'pdf')
@@ -170,15 +170,15 @@ OrderedDict([('figQuarterlySales', Figure('figQuarterlySales', <matplotlib...
 ..., 'Quarterly sales data.', 'pdf'))])
 
 # Bulk export all of the exports.
->>> Export.to(my_pub)
+>>> Export.to(final)
 ['valueMeanSales', 'tableQuarterlySales', 'figQuarterlySales']
 
 # It is also possible to bulk exports based on export type.
->>> Value.to(my_pub)
+>>> Value.to(final)
 ['valueMeanSales']
->>> Table.to(my_pub)
+>>> Table.to(final)
 ['tableQuarterlySales']
->>> Figure.to(my_pub)
+>>> Figure.to(final)
 ['figQuarterlySales']
 """
 
@@ -238,9 +238,10 @@ class Export():
         name = args[0]  # Get the name of the export for namecheck.
         overwrite = kwargs['overwrite']
 
-        # overwrite is false and name is used (a key in Export.list())...
-        if (overwrite is False) & (name in Export.list()):
+        # -- Name-check and object creation ------------------------------------
 
+        # If overwrite is False and name is used (a key in Export.list())...
+        if (overwrite is False) & (name in Export.list()):
             # Log a warning message.
             display_logger.warn(
                 ("Kallysto: "
@@ -290,7 +291,9 @@ class Export():
         subclass the contents of _exports are used directly.
         """
 
-        # Export.list() -> need to gather the exports from the subclasses.
+        # -- Build exports or use _exports? ------------------------------------
+
+        # If called from Export then build exports from subclasses' _exports.
         if cls == Export:
 
             # Create a combined dict from all the exports
@@ -301,7 +304,7 @@ class Export():
 
             return all_exports
 
-        # Else, list() is called by a subclass so just return _exports.
+        # Else, if called by a subclass just return _exports.
         else:
             return cls._exports
 
@@ -309,6 +312,7 @@ class Export():
     def to(cls, publication):
         """ Export all exports to publication."""
 
+        # Export each export in cls.list()
         for name, export in cls.list().items():
             export > publication
 
@@ -372,7 +376,7 @@ class Value(Export):
     def __gt__(self, publication):
         """Export self (Value) to publication."""
 
-        # Set the definition string.
+        # Set the definition string using the value formatter.
         self.def_str = publication.formatter.value(self, publication)
 
         # Set the log message.
@@ -449,18 +453,18 @@ class Table(Export):
     def __gt__(self, publication):
         """Export self (Table) to publication"""
 
-        # Set the definition string.
+        # Set the definition string using the table formatter.
         self.def_str = publication.formatter.table(self, publication)
 
         # Set the log message.
-        self.log_str = ('{log_id},{logged},{title},{notebook},{data_path},'
-                        '{export}').format(
+        self.log_str = ('{log_id},{logged},{title},{notebook},'
+                        '{export},{data_path}').format(
             log_id=time(),
             logged=strftime('%X %x %Z'),
             title=publication.title,
             notebook=publication.notebook,
-            data_path=publication.data_path,
-            export=self)
+            export=self,
+            data_path=publication.data_path)
 
         # Save the data to .csv
         self.data.to_csv(publication.data_path + self.data_file)
@@ -479,7 +483,6 @@ class Figure(Export):
     data - the dataframe associated with the figure.
     caption - the caption for the figure.
     format - the format of the saved image (pdf or png)
-
 
     Attributes:
         data: the pandas dataframe related to the image.
@@ -550,12 +553,12 @@ class Figure(Export):
     def __gt__(self, publication):
         """Export self (Figure) to publication"""
 
-        # Set the definition string.
+        # Set the definition string using the figure formatter.
         self.def_str = publication.formatter.figure(self, publication)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
-                        '{figs_path},{data_path},{export}').format(
+                        '{export},{figs_path},{data_path},').format(
             log_id=time(),
             logged=strftime('%X %x %Z'),
             title=publication.title,

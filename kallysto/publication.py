@@ -236,7 +236,7 @@ class Publication():
         self.figs_dir, self.data_dir = figs_dir, data_dir
         self.defs_dir, self.logs_dir = defs_dir, logs_dir
 
-        # The paths from the notebook to the main folders.
+        # -- The paths from notebook to the main publication folders. ----------
         self.figs_path =\
             root_path + title + '/' + figs_dir + notebook + '/'
         self.defs_path =\
@@ -432,8 +432,10 @@ class Publication():
         if self.write_defs:
             self.defs_logger.info(export.def_str)
 
+        # Log the export.
         self.audit_logger.info(export.log_str)
 
+        # Add the export to exports.
         self.exports.append(export)
 
         return export
