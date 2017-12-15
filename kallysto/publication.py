@@ -94,6 +94,7 @@ Settings:
   write_defs: True
 """
 
+# -- Publication ---------------------------------------------------------------
 
 import logging
 import os
@@ -147,6 +148,8 @@ class Publication():
         defs_file: name of definitions file.
         logs_file: name of log file.
     """
+
+# -- Init ----------------------------------------------------------------------
 
     def __init__(self, notebook, title,
 
@@ -207,6 +210,8 @@ class Publication():
 
         # Setup logging; defs logger and audit logger.
         self.setup_logging()
+
+# -- Init Helpers --------------------------------------------------------------
 
     def setup_locations(self, title, notebook,
                         root_path, main_path,
@@ -363,6 +368,8 @@ class Publication():
             defs_logger_handler = logging.FileHandler(self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 
+# -- Overriding __repr__ and __str__ -------------------------------------------
+
     def __repr__(self):
         return ("Publication({notebook}, {title}, "
                 "formatter={formatter}, "
@@ -415,6 +422,8 @@ class Publication():
             formatter=self.formatter,
             write_defs=self.write_defs,)
 
+# -- Publication, Public API ----------------------------------------------------------------
+
     def export(self, export):
         """Export the definition and log the export.
         """
@@ -428,6 +437,3 @@ class Publication():
         self.exports.append(export)
 
         return export
-
-    def delete(self):
-        self.cleanup_notebook_files(delete_log=True)

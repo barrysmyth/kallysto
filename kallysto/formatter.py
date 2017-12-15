@@ -46,6 +46,8 @@ data from the export object or the publication."""
 import pandas as pd
 from time import time, strftime
 
+# -- For Latex exports ---------------------------------------------------------
+
 
 class Latex():
     """Generate formatted latex definitions for exports.

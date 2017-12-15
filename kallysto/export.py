@@ -96,10 +96,12 @@ example value, table, and figure items to this publication.
 # Create a new publication as an export target (final_report). It is assumed
 # this code is run in a notebook (notebook_1) and that the final_report is
 # located at 'tests/sandbox/' relative to the notebook.
->>> my_pub = Publication('notebook_1', 'final_report', root_path='tests/sandbox/')
+>>> my_pub = Publication(\
+'notebook_1', 'final_report', root_path='tests/sandbox/')
 
 # A sample dataframe of quarterly sales figures.
->>> df = pd.DataFrame([(1, 100),(2, 120),(3, 110),(4,200)],columns=['Qtr', 'Sales'])
+>>> df = pd.DataFrame([(1, 100),(2, 120),(3, 110),(4,200)],\
+columns=['Qtr', 'Sales'])
 >>> df
    Qtr  Sales
 0    1    100
@@ -115,11 +117,19 @@ Value('valueMeanSales', 132.5)
 132.5
 >>> mean_sales.name
 'valueMeanSales'
+
+# Creating an export with an existing name generates a warning.
+>>> mean_sales = Value('valueMeanSales', df['Sales'].mean())
+>>> type(mean_sales)  # mean_sales should be reassigned to None.
+<class 'NoneType'>
+>>> mean_sales = Value('valueMeanSales', df['Sales'].mean(), overwrite=True)
+
 >>> mean_sales > my_pub
 Value('valueMeanSales', 132.5)
 
 # An example Table export for the dataframe.
->>> sales_table = Table('tableQuarterlySales', df, caption="Quartery sales table.")
+>>> sales_table = Table('tableQuarterlySales', df, \
+caption="Quartery sales table.")
 >>> sales_table > my_pub
 Table('tableQuarterlySales',    Qtr  Sales
 0    1    100
@@ -131,16 +141,32 @@ Table('tableQuarterlySales',    Qtr  Sales
 >>> fig, ax = plt.subplots()
 >>> ax.plot(df['Qtr'], df['Sales'])  # doctest:+ELLIPSIS
 [<matplotlib.lines.Line2D object at ...>]
->>> sales_fig = Figure('figQuarterlySales', image=fig, data=df, caption="Quarterly sales data.")
+>>> sales_fig = Figure('figQuarterlySales', image=fig, data=df, \
+caption="Quarterly sales data.")
 >>> sales_fig > my_pub  # doctest:+ELLIPSIS
 Figure('figQuarterlySales', <matplotlib.figure.Figure ...>,    Qtr  Sales
 ...
 3    4    200, 'Quarterly sales data.', 'pdf')
 
-# All of the export objects created.
+# List all of the export objects created.
 >>> Export.list()  # doctest:+ELLIPSIS
-OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5)), ('tableQuarterlySales', Table('tableQuarterlySales',    Qtr  Sales
-..., 'Quartery sales table.')), ('figQuarterlySales', Figure('figQuarterlySales', <matplotlib.figure.Figure object at ...>,    Qtr  Sales
+OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5)), \
+('tableQuarterlySales', Table('tableQuarterlySales',    Qtr  Sales
+..., 'Quartery sales table.')), ('figQuarterlySales', \
+Figure('figQuarterlySales', <matplotlib.figure.Figure object at ...>,    \
+Qtr  Sales
+..., 'Quarterly sales data.', 'pdf'))])
+
+# or we can get a list by type.
+>>> Value.list()  # doctest:+ELLIPSIS
+OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5))])
+
+>>> Table.list()  # doctest:+ELLIPSIS
+OrderedDict([('tableQuarterlySales', Table('tableQuarterlySales',...
+..., 'Quartery sales table.'))])
+
+>>> Figure.list()  # doctest:+ELLIPSIS
+OrderedDict([('figQuarterlySales', Figure('figQuarterlySales', <matplotlib...
 ..., 'Quarterly sales data.', 'pdf'))])
 
 # Bulk export all of the exports.
@@ -158,6 +184,7 @@ OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5)), ('tableQuarterl
 
 import logging
 import os
+import sys
 from collections import OrderedDict
 
 from time import time, strftime
@@ -166,8 +193,10 @@ from datetime import datetime
 import pandas as pd
 
 # Some basic logging to display.
-display_logger = logging.getLogger("Kallysto: ")
+display_logger = logging.getLogger("Kallysto")
 display_logger.setLevel(logging.INFO)
+
+# -- Export base class ----------------------------------------------------------------------
 
 
 class Export():
@@ -191,37 +220,7 @@ class Export():
         log_str: the corresponding log message.
     """
 
-    @classmethod
-    def list(cls):
-        """ Return a list of all exports as a dict keyed on name.
-
-        The dict is generated dynamically from the _export classvars of all
-        subclasses of Export.
-        """
-
-        # Get subclasses of Export.
-        subclasses = cls.__subclasses__()
-
-        # Get the export dicts for these subclasses.
-        # dicts = [subclass.list() for subclass in subclasses]
-
-        # Create a combined dict from all the exports
-        all_exports = OrderedDict()
-        for d in [subclass.list() for subclass in subclasses]:
-            for name, export in d.items():
-                all_exports[name] = export
-
-        return all_exports
-
-    @classmethod
-    def to(cls, publication):
-        """ Export all exports to publication.
-        """
-
-        for name, export in cls.list().items():
-            export > publication
-
-        return list(cls.list().keys())
+# -- Export creation ---------------------------------------------------------
 
     def __new__(cls, *args, **kwargs):
         """Create new export object subject to name-check.
@@ -244,7 +243,8 @@ class Export():
 
             # Log a warning message.
             display_logger.warn(
-                ("Warning: name {} already in use for {!r}.\n"
+                ("Kallysto: "
+                 "Export with name {} already in use for {!r}.\n"
                  "Use overwrite=True to override.").format(
                     name, Export.list()[name]))
 
@@ -254,6 +254,10 @@ class Export():
         # Otherwise, either the name is not used or overwrite is True so we
         # create the object and return it.
         else:
+            display_logger.warn(
+                ("Kallysto: "
+                 "{} with name {} created.").format(
+                    cls.__name__, name))
             obj = super(Export, cls).__new__(cls)
             return obj
 
@@ -275,30 +279,46 @@ class Export():
         # Add the new export object to the subclass export dict.
         cls._exports[name] = self
 
-        # self.update_export_list(name, export, cls, overwrite)
+# -- Export, Public API ---------------------------------------------------------
 
-    def __gt__(self, publication):
-        return publication.export(self)
+    @classmethod
+    def list(cls):
+        """ Return a list of all exports as a dict keyed on name.
 
-    def update_export_list(self, name, export, overwrite):
-        """Add new export to appropriate export dict.
-
-        Update class-based export dict to incldue the new export if it does
-        not already exist or is overwrite is True.
-        if the name does already exist and overwrite is False then warn.
+        When called from Export, the dict is generated dynamically from the
+        _export class vars of all subclasses of Export. When called from a
+        subclass the contents of _exports are used directly.
         """
 
-        # Check is name is already used before updating _exports.
-        if (overwrite is False) & (name in Export.list()):
+        # Export.list() -> need to gather the exports from the subclasses.
+        if cls == Export:
 
-            # Raise an error if the name is already used.
-            display_logger.warn(
-                ("Warning: name {} already in use for {!r}.\n"
-                 "Use overwrite=True to override.").format(
-                    name, Export.list()[name]))
+            # Create a combined dict from all the exports
+            all_exports = OrderedDict()
+            for d in [subclass.list() for subclass in cls.__subclasses__()]:
+                for name, export in d.items():
+                    all_exports[name] = export
+
+            return all_exports
+
+        # Else, list() is called by a subclass so just return _exports.
         else:
-            # Add the new export object to the subclass export dict.
-            cls._exports[name] = export
+            return cls._exports
+
+    @classmethod
+    def to(cls, publication):
+        """ Export all exports to publication."""
+
+        for name, export in cls.list().items():
+            export > publication
+
+        return list(cls.list().keys())
+
+    def __gt__(self, publication):
+        """Export self to publication."""
+        return publication.export(self)
+
+# -- Value ---------------------------------------------------------------------
 
 
 class Value(Export):
@@ -316,24 +336,26 @@ class Value(Export):
     """
     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
-    @classmethod
-    def list(cls):
-        return cls._exports
-
     def __new__(cls, name, value, overwrite=False):
         return super(Value, cls).__new__(cls, name, value, overwrite=overwrite)
 
     def __init__(self, name, value, overwrite=False):
         """
-        Initialise a new Value instance.
+        Initialise a new Value instance and add to _exports.
 
         Args:
-          bridge: A instance of a kallysto ridge.
+          name: the name of the export.
+          value: the value of the export.
+          overwrite: If True overwrite existing named export. Otherwise if the
+                     name already exists then and overwrite is False then abort
+                     the Value creation and warn the user.
         """
 
         super().__init__(name, self, self.__class__, overwrite)
 
         self.value = value
+
+# -- Override repr and str -----------------------------------------------------
 
     def __repr__(self):
         return ('Value({name!r}, {value!r})').format(
@@ -345,7 +367,10 @@ class Value(Export):
             uid=self.uid, created=self.created,
             name=self.name, value=self.value)
 
+# -- Value, Public API ----------------------------------------------------------
+
     def __gt__(self, publication):
+        """Export self (Value) to publication."""
 
         # Set the definition string.
         self.def_str = publication.formatter.value(self, publication)
@@ -360,6 +385,8 @@ class Value(Export):
             export=self)
 
         return super().__gt__(publication)
+
+# -- Table ---------------------------------------------------------------------
 
 
 class Table(Export):
@@ -380,9 +407,7 @@ class Table(Export):
     """
     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
-    @classmethod
-    def list(cls):
-        return cls._exports
+# -- Table creation ------------------------------------------------------------
 
     def __new__(cls, name, data, caption, overwrite=False):
         return super(Table, cls).__new__(
@@ -396,12 +421,17 @@ class Table(Export):
           name: name of the export.
           data: dataframe corresponding to teh table.
           caption: table caption.
+          overwrite: If True overwrite existing named export. Otherwise if the
+                     name already exists then and overwrite is False then abort
+                     the Table creation and warn the user.
         """
         super().__init__(name, self, self.__class__, overwrite)
 
         self.data = data
         self.data_file = "{}.csv".format(name)
         self.caption = caption
+
+# -- Override repr and str -----------------------------------------------------
 
     def __repr__(self):
         return ('Table({name!r}, {data!r}, {caption!r})').format(
@@ -414,7 +444,10 @@ class Table(Export):
             uid=self.uid, created=self.created,
             name=self.name, data_file=self.data_file)
 
+# -- Table, Public API ----------------------------------------------------------
+
     def __gt__(self, publication):
+        """Export self (Table) to publication"""
 
         # Set the definition string.
         self.def_str = publication.formatter.table(self, publication)
@@ -433,6 +466,8 @@ class Table(Export):
         self.data.to_csv(publication.data_path + self.data_file)
 
         return super().__gt__(publication)
+
+# -- Figure ---------------------------------------------------------
 
 
 class Figure(Export):
@@ -455,9 +490,7 @@ class Figure(Export):
     """
     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
-    @classmethod
-    def list(cls):
-        return cls._exports
+# -- Figure creation -----------------------------------------------------------
 
     def __new__(cls,
                 name, image, data, caption, format='pdf', overwrite=False):
@@ -476,6 +509,10 @@ class Figure(Export):
           data: dataframe corresponding to teh table.
           caption: table caption.
           format: png or pdf.
+          overwrite: If True overwrite existing named export. Otherwise if the
+                     name already exists then and overwrite is False then abort
+                     the Figure creation and warn the user.
+
         """
 
         super().__init__(name, self, self.__class__, overwrite)
@@ -490,6 +527,8 @@ class Figure(Export):
         self.image_file = "{}.{}".format(name, format)  # The figure image.
 
         self.fig_scale = 1     # Scaling of figures.
+
+# -- Override repr and str -----------------------------------------------------
 
     def __repr__(self):
         return ('Figure({name!r}, {image!r}, '
@@ -506,7 +545,10 @@ class Figure(Export):
             name=self.name, image_file=self.image_file,
             data_file=self.data_file)
 
+# -- Figure, Public API ---------------------------------------------------------
+
     def __gt__(self, publication):
+        """Export self (Figure) to publication"""
 
         # Set the definition string.
         self.def_str = publication.formatter.figure(self, publication)
