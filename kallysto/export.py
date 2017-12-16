@@ -193,8 +193,8 @@ from datetime import datetime
 import pandas as pd
 
 # Some basic logging to display.
-display_logger = logging.getLogger("Kallysto")
-display_logger.setLevel(logging.INFO)
+# display_logger = logging.getLogger("Kallysto")
+# display_logger.setLevel(logging.INFO)
 
 # -- Export base class ----------------------------------------------------------------------
 
@@ -202,7 +202,7 @@ display_logger.setLevel(logging.INFO)
 class Export():
     """The base export class.
 
-    An export is a piece of data that is available for export.
+    An export is a piece of data that can be published to a publication.
     Each export is associated with a unique id, a name and a creation date.
     Exports are stored in the classvar _exports dict, keyed on export name.
 
@@ -220,6 +220,9 @@ class Export():
         log_str: the corresponding log message.
     """
 
+    display_logger = logging.getLogger("Kallysto")
+
+
 # -- Export creation ---------------------------------------------------------
 
     def __new__(cls, *args, **kwargs):
@@ -234,16 +237,15 @@ class Export():
         Table, Figure.
         """
 
-        # Get the export name and overwrite status.
-        name = args[0]  # Get the name of the export for namecheck.
-        overwrite = kwargs['overwrite']
+        name = args[0]                   # Export name.
+        overwrite = kwargs['overwrite']  # Overwrite status.
 
         # -- Name-check and object creation ------------------------------------
 
         # If overwrite is False and name is used (a key in Export.list())...
         if (overwrite is False) & (name in Export.list()):
             # Log a warning message.
-            display_logger.warn(
+            Export.display_logger.warn(
                 ("Kallysto: "
                  "Export with name {} already in use for {!r}.\n"
                  "Use overwrite=True to override.").format(
@@ -255,7 +257,7 @@ class Export():
         # Otherwise, either the name is not used or overwrite is True so we
         # create the object and return it.
         else:
-            display_logger.warn(
+            Export.display_logger.warn(
                 ("Kallysto: "
                  "{} with name {} created.").format(
                     cls.__name__, name))
@@ -269,6 +271,7 @@ class Export():
         but will be called by the constructors fof Value, Table, or Figure
         exports.
         """
+        Export.display_logger.setLevel(logging.INFO)
 
         self.uid = time()                    # Unique id
         self.created = strftime('%X %x %Z')  # Creation data
