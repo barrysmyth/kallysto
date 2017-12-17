@@ -33,16 +33,17 @@
 # SOFTWARE.
 
 """
-Create a  publication linking a notebook to a publication title.
+Create a publication link, connecting a notebook to a publication tree.
 
 Creates a set of subfolders within a publication title folder inside
-the publication root of the project. The location of this publication
-root, relative to a notebook, and the names of the created
-subfolders can be configured through the constructor.
+the publication root of the project.
 
-Also includes configurations for whether or not to overwrite existing
-folders/files/logs as well as whether to create seperate definition files,
-and when definition files are to be created, which formatter to use.
+The location of the publication root, relative to a notebook, and the
+names of the created subfolders can be configured through the constructor.
+
+Additional configuration options include: whether or not to overwrite
+existing folders/files/logs; whether to create seperate definition files; when
+definition files are to be created, which formatter to use.
 
 Example Usage:
 
@@ -110,11 +111,8 @@ Settings:
 
 import logging
 import os
-import sys
 from shutil import rmtree
-
 from kallysto.formatter import Latex
-from kallysto.export import Value, Table, Figure
 
 
 class Publication(object):
@@ -336,9 +334,10 @@ class Publication(object):
             'Creating {}{}.'.format(self.root_path, self.title))
         os.makedirs(self.root_path + self.title, exist_ok=True)
 
+        # Prepare to create main folders ...
         folders = [self.figs_path, self.data_path, self.logs_path]
 
-        # Add defs path if definitions are to be written.
+        # Add defs folder if definitions are to be written.
         if self.write_defs:
             folders.append(self.defs_path)
 
@@ -347,7 +346,7 @@ class Publication(object):
             self.display_logger.info('Creating {}.'.format(folder))
             os.makedirs(folder, exist_ok=True)
 
-        # Create the definitions file is needed.
+        # Create the definitions file if needed.
         if self.write_defs:
             self.display_logger.info(
                 'Creating {} if it does not exist.'.format(self.defs_file))
@@ -361,10 +360,10 @@ class Publication(object):
     def setup_logging(self):
         """Setup Kallysto's logging.
 
-        Kallysto uses three loggers: (1) A display logger to information
-        messages to the screen; (2) an audit logger to log exports to a
-        central log file associated with the publication; and (3) a defs
-        logger for writing the export defintions.
+        Kallysto uses three loggers:
+        (1) A display logger for info messages, setup in init;
+        (2) an audit logger to log exports to a central publication log file;
+        (3) a defs logger for writing the export defintions; if needed.
         """
 
         # A file-based logger to create an kallysto audit trail.
@@ -377,11 +376,10 @@ class Publication(object):
         self.audit_logger.addHandler(audit_logger_handler)
 
         # The definitions logger for writing the export defs.
-        self.defs_logger = logging.getLogger(
-            "defs_{}:{}".format(self.title, self.notebook))
-        self.defs_logger.setLevel(logging.INFO)
-
         if self.write_defs:
+            self.defs_logger = logging.getLogger(
+                "defs_{}:{}".format(self.title, self.notebook))
+            self.defs_logger.setLevel(logging.INFO)
             defs_logger_handler = logging.FileHandler(self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 

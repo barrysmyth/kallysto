@@ -295,8 +295,6 @@ class Export():
         subclass the contents of _exports are used directly.
         """
 
-        # -- Build exports or use _exports? ------------------------------------
-
         # If called from Export then build exports from subclasses' _exports.
         if cls == Export:
 
@@ -314,13 +312,12 @@ class Export():
 
     @classmethod
     def to(cls, publication):
-        """ Export all exports to publication."""
+        """ Export all exports in cls.list() to publication."""
 
-        # Export each export in cls.list()
         for name, export in cls.list().items():
             export > publication
 
-        return list(cls.list().keys())
+        return list(cls.list().keys())  # Return export names for convenience.
 
     def __gt__(self, publication):
         """Export self to publication."""
@@ -358,6 +355,7 @@ class Value(Export):
 
         super().__init__(name, self, self.__class__)
 
+        # The value-specific fields; just value.
         self.value = value
 
 # -- Override repr and str -----------------------------------------------------
@@ -378,9 +376,7 @@ class Value(Export):
         """Export self (Value) to publication."""
 
         # Set the definition string using the value formatter.
-        # self.def_str = publication.formatter.value(self, publication)
-        formatter_to_call = getattr(publication.formatter, 'value')
-        self.def_str = formatter_to_call(self, publication)
+        self.def_str = publication.formatter.value(self, publication)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
@@ -430,6 +426,7 @@ class Table(Export):
         """
         super().__init__(name, self, self.__class__)
 
+        # The table-specific fields.
         self.data = data
         self.data_file = "{}.csv".format(name)
         self.caption = caption
@@ -508,13 +505,13 @@ class Figure(Export):
 
         super().__init__(name, self, self.__class__)
 
+        # The figure-specific fields.
         self.image = image
         self.data = data
         self.caption = caption
         self.format = format
 
-        # The data for the figure.
-        self.data_file = "{}.csv".format(name)
+        self.data_file = "{}.csv".format(name)          # The source-data file.
         self.image_file = "{}.{}".format(name, format)  # The figure image.
 
         self.fig_scale = 1     # Scaling of figures.
