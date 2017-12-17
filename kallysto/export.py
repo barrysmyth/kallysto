@@ -110,7 +110,7 @@ columns=['Qtr', 'Sales'])
 3    4    200
 
 # An example Value export for the mean sales calculation.
->>> mean_sales = Value('valueMeanSales', df['Sales'].mean())
+>>> mean_sales = Export.value('valueMeanSales', df['Sales'].mean())
 >>> mean_sales
 Value('valueMeanSales', 132.5)
 >>> mean_sales.value
@@ -119,16 +119,16 @@ Value('valueMeanSales', 132.5)
 'valueMeanSales'
 
 # Creating an export with an existing name generates a warning.
->>> mean_sales = Value('valueMeanSales', df['Sales'].mean())
->>> type(mean_sales)  # mean_sales should be reassigned to None.
-<class 'NoneType'>
->>> mean_sales = Value('valueMeanSales', df['Sales'].mean(), overwrite=True)
+>>> mean_sales = Export.value('valueMeanSales', df['Sales'].mean())
+>>> mean_sales is Value.list()['valueMeanSales']
+True
+>>> mean_sales = Export.value('valueMeanSales', df['Sales'].mean(), overwrite=True)
 
 >>> mean_sales > final
 Value('valueMeanSales', 132.5)
 
 # An example Table export for the dataframe.
->>> sales_table = Table('tableQuarterlySales', df, \
+>>> sales_table = Export.table('tableQuarterlySales', df, \
 caption="Quartery sales table.")
 >>> sales_table > final
 Table('tableQuarterlySales',    Qtr  Sales
@@ -138,36 +138,34 @@ Table('tableQuarterlySales',    Qtr  Sales
 3    4    200, 'Quartery sales table.')
 
 # An example Figure export of sales vs quarter.
->>> fig, ax = plt.subplots()
->>> ax.plot(df['Qtr'], df['Sales'])  # doctest:+ELLIPSIS
-[<matplotlib.lines.Line2D object at ...>]
->>> sales_fig = Figure('figQuarterlySales', image=fig, data=df, \
-caption="Quarterly sales data.")
+>>> sales_fig = Export.figure(\
+        'figQuarterlySales', image=df.plot().get_figure(), data=df,\
+        caption='Quarterly sales data.')
 >>> sales_fig > final  # doctest:+ELLIPSIS
-Figure('figQuarterlySales', <matplotlib.figure.Figure ...>,    Qtr  Sales
+Figure('figQuarterlySales', <matplotlib.figure.Figure ...
 ...
-3    4    200, 'Quarterly sales data.', 'pdf')
+...
 
 # List all of the export objects created.
 >>> Export.list()  # doctest:+ELLIPSIS
 OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5)), \
 ('tableQuarterlySales', Table('tableQuarterlySales',    Qtr  Sales
 ..., 'Quartery sales table.')), ('figQuarterlySales', \
-Figure('figQuarterlySales', <matplotlib.figure.Figure object at ...>,    \
-Qtr  Sales
-..., 'Quarterly sales data.', 'pdf'))])
+Figure('figQuarterlySales', <matplotlib.figure.Figure object at ...
+...
+...
 
-# or we can get a list by type.
+# Or we can get a list by type.
 >>> Value.list()  # doctest:+ELLIPSIS
 OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5))])
 
 >>> Table.list()  # doctest:+ELLIPSIS
 OrderedDict([('tableQuarterlySales', Table('tableQuarterlySales',...
-..., 'Quartery sales table.'))])
+...
 
 >>> Figure.list()  # doctest:+ELLIPSIS
 OrderedDict([('figQuarterlySales', Figure('figQuarterlySales', <matplotlib...
-..., 'Quarterly sales data.', 'pdf'))])
+...
 
 # Bulk export all of the exports.
 >>> Export.to(final)
@@ -185,7 +183,7 @@ OrderedDict([('figQuarterlySales', Figure('figQuarterlySales', <matplotlib...
 import logging
 import os
 import sys
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 from time import time, strftime
 from datetime import datetime
@@ -221,50 +219,53 @@ class Export():
     """
 
     display_logger = logging.getLogger("Kallysto")
+    _exports = OrderedDict()
 
+# -- Export, public API -----------------------------------------
 
-# -- Export creation ---------------------------------------------------------
+    @classmethod
+    def value(cls, name, value, overwrite=False):
+        """Create Value export with a name check."""
+        existing = Export.name_exists(name, overwrite, cls.list())
+        return existing if existing else Value(name, value)
 
-    def __new__(cls, *args, **kwargs):
-        """Create new export object subject to name-check.
+    @classmethod
+    def table(cls, name, data, caption, overwrite=False):
+        """Create Table export with a name check."""
+        existing = Export.name_exists(name, overwrite, cls.list())
+        return existing if existing else Table(name, data, caption)
 
-        The object constructor. If the export name already exists and
-        overwrite is False then generate a warning and don't return the object,
-        which ensures the object is not created or initialised. Otherwise
-        return the newly created object.
+    @classmethod
+    def figure(cls, name, image, data, caption, format='pdf', overwrite=False):
+        """Create Figure export with a name check."""
+        existing = Export.name_exists(name, overwrite, cls.list())
+        return existing if existing else Figure(name, image, data, caption, format)
 
-        This constructor will not be called directly but rather by Value,
-        Table, Figure.
-        """
+    @classmethod
+    def list(cls):
+        return cls._exports
 
-        name = args[0]                   # Export name.
-        overwrite = kwargs['overwrite']  # Overwrite status.
+# -- Util ---------------------------------------------------------
 
-        # -- Name-check and object creation ------------------------------------
+    @staticmethod
+    def name_exists(name, overwrite, exports):
+        """ If the name exists return the corresponding export."""
 
-        # If overwrite is False and name is used (a key in Export.list())...
-        if (overwrite is False) & (name in Export.list()):
-            # Log a warning message.
+        if (not overwrite) & (name in exports):
             Export.display_logger.warn(
                 ("Kallysto: "
                  "Export with name {} already in use for {!r}.\n"
                  "Use overwrite=True to override.").format(
-                    name, Export.list()[name]))
+                    name, exports[name]))
 
-            # Return None ensures object reation step is abandoned.
-            return None
+            return exports[name]
 
-        # Otherwise, either the name is not used or overwrite is True so we
-        # create the object and return it.
-        else:
-            Export.display_logger.warn(
-                ("Kallysto: "
-                 "{} with name {} created.").format(
-                    cls.__name__, name))
-            obj = super(Export, cls).__new__(cls)
-            return obj
+        return False
 
-    def __init__(self, name, export, cls, overwrite=False):
+
+# -- Export creation ---------------------------------------------------------
+
+    def __init__(self, name, export, cls):
         """Initialise new export.
 
         This base class constructor is not intended to be called directly
@@ -343,10 +344,7 @@ class Value(Export):
     """
     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
-    def __new__(cls, name, value, overwrite=False):
-        return super(Value, cls).__new__(cls, name, value, overwrite=overwrite)
-
-    def __init__(self, name, value, overwrite=False):
+    def __init__(self, name, value):
         """
         Initialise a new Value instance and add to _exports.
 
@@ -358,7 +356,7 @@ class Value(Export):
                      the Value creation and warn the user.
         """
 
-        super().__init__(name, self, self.__class__, overwrite)
+        super().__init__(name, self, self.__class__)
 
         self.value = value
 
@@ -380,7 +378,9 @@ class Value(Export):
         """Export self (Value) to publication."""
 
         # Set the definition string using the value formatter.
-        self.def_str = publication.formatter.value(self, publication)
+        # self.def_str = publication.formatter.value(self, publication)
+        formatter_to_call = getattr(publication.formatter, 'value')
+        self.def_str = formatter_to_call(self, publication)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
@@ -416,11 +416,7 @@ class Table(Export):
 
 # -- Table creation ------------------------------------------------------------
 
-    def __new__(cls, name, data, caption, overwrite=False):
-        return super(Table, cls).__new__(
-            cls, name, data, caption, overwrite=overwrite)
-
-    def __init__(self, name, data, caption, overwrite=False):
+    def __init__(self, name, data, caption):
         """
         Initialise a new Table.
 
@@ -432,7 +428,7 @@ class Table(Export):
                      name already exists then and overwrite is False then abort
                      the Table creation and warn the user.
         """
-        super().__init__(name, self, self.__class__, overwrite)
+        super().__init__(name, self, self.__class__)
 
         self.data = data
         self.data_file = "{}.csv".format(name)
@@ -498,16 +494,9 @@ class Figure(Export):
 
 # -- Figure creation -----------------------------------------------------------
 
-    def __new__(cls,
-                name, image, data, caption, format='pdf', overwrite=False):
-        return super(Figure, cls).__new__(cls,
-                                          name, image, data, caption,
-                                          format=format, overwrite=overwrite)
-
     def __init__(self,
-                 name, image, data, caption, format='pdf', overwrite=False):
-        """
-        Initialise a new Figure.
+                 name, image, data, caption, format='pdf'):
+        """Initialise a new Figure.
 
         Args:
           name: name of the export.
@@ -515,13 +504,9 @@ class Figure(Export):
           data: dataframe corresponding to teh table.
           caption: table caption.
           format: png or pdf.
-          overwrite: If True overwrite existing named export. Otherwise if the
-                     name already exists then and overwrite is False then abort
-                     the Figure creation and warn the user.
-
         """
 
-        super().__init__(name, self, self.__class__, overwrite)
+        super().__init__(name, self, self.__class__)
 
         self.image = image
         self.data = data

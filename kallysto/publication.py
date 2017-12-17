@@ -117,7 +117,7 @@ from kallysto.formatter import Latex
 from kallysto.export import Value, Table, Figure
 
 
-class Publication():
+class Publication(object):
     """Create a  publication linking a notebook to a publication title.
 
     Creates a set of subfolders within a publication title folder inside
@@ -442,8 +442,7 @@ class Publication():
 # -- Publication, Public API ----------------------------------------------------------------
 
     def export(self, export):
-        """Export the definition and log the export.
-        """
+        """Export the definition and log the export."""
 
         # If write_defs then write definitions file.
         if self.write_defs:
