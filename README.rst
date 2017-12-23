@@ -8,8 +8,7 @@ reports or publications (Latex, markdown etc.)
 
 An individual export will typically produce a definition, such as a Latex ``newcommand`` defintion, which can be imported into, and referenced in, the main publication file. Additional files, such as images (for figures) and source data files (figures and tables) are also exported.
 
-Furthermore, in support of more
-reproducible data science, Kallysto also creates a detailed audit trail for all exports.
+Furthermore, in support of more reproducible data science, Kallysto also creates a detailed audit trail for all exports by logging individual exports and capturing the data behind them.
 
 As a quick-start, the following links to a publication called ``final`` and creates and pushes value, table, and figure exports:::
 
@@ -55,7 +54,7 @@ This creates a link from the notebook, ``nb_1`` to the publication, ``final``, l
 *Note*: a given notebook or script can be connected to multiple publications so that the same notebook or script can export to multiple publications.
 
 **Step 2 - Creating the Exports**
-Currently there are three types of exports: values (anything that can be rendered as a string), tables (Pandas dataframes), and figures (Matplotlib figures). For example, the following generates a value export (*mean_sales*), a table export (*sales_table*), and a sales graph ($sales_fig*).
+Currently there are three types of exports: values (anything that can be rendered as a string), tables (Pandas dataframes), and figures (Matplotlib figures). For example, the following generates a value export (*mean_sales*), a table export (*sales_table*), and a figure export ($sales_fig*).
 
     mean_sales = Export.value('meanSales', df['sales'].mean())
 
@@ -89,7 +88,7 @@ This creates Latex defintions in ``../../pubs/final/defs/nb_1/_definitions.tex``
         - logs/
             - _kallysto.log
 
-*Note*: as a convenient alternative to pushing exports one at a time, it is possible to push all of the exports using ``Export.to(final)``.
+*Note*: as a convenient alternative to pushing exports one at a time, it is also possible to push all of the exports using ``Export.to(final)`` or even all exports of a given type using ``Value.to(final)``, ``Table.to(final)``, or ``Figure.to(final)``.
 
 
 
