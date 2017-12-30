@@ -194,7 +194,7 @@ import pandas as pd
 # display_logger = logging.getLogger("Kallysto")
 # display_logger.setLevel(logging.INFO)
 
-# -- Export base class ----------------------------------------------------------------------
+# -- Export base class ---------------------------------------------------
 
 
 class Export():
@@ -284,7 +284,7 @@ class Export():
         # Add the new export object to the subclass export dict.
         cls._exports[name] = self
 
-# -- Export, Public API ---------------------------------------------------------
+# -- Export, Public API --------------------------------------------------
 
     @classmethod
     def list(cls):
@@ -323,7 +323,7 @@ class Export():
         """Export self to publication."""
         return publication.export(self)
 
-# -- Value ---------------------------------------------------------------------
+# -- Value ---------------------------------------------------------------
 
 
 class Value(Export):
@@ -358,7 +358,7 @@ class Value(Export):
         # The value-specific fields; just value.
         self.value = value
 
-# -- Override repr and str -----------------------------------------------------
+# -- Override repr and str -----------------------------------------------
 
     def __repr__(self):
         return ('Value({name!r}, {value!r})').format(
@@ -370,7 +370,7 @@ class Value(Export):
             uid=self.uid, created=self.created,
             name=self.name, value=self.value)
 
-# -- Value, Public API ----------------------------------------------------------
+# -- Value, Public API ---------------------------------------------------
 
     def __gt__(self, publication):
         """Export self (Value) to publication."""
@@ -389,7 +389,7 @@ class Value(Export):
 
         return super().__gt__(publication)
 
-# -- Table ---------------------------------------------------------------------
+# -- Table ---------------------------------------------------------------
 
 
 class Table(Export):
@@ -410,7 +410,7 @@ class Table(Export):
     """
     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
-# -- Table creation ------------------------------------------------------------
+# -- Table creation ------------------------------------------------------
 
     def __init__(self, name, data, caption):
         """
@@ -431,7 +431,7 @@ class Table(Export):
         self.data_file = "{}.csv".format(name)
         self.caption = caption
 
-# -- Override repr and str -----------------------------------------------------
+# -- Override repr and str -----------------------------------------------
 
     def __repr__(self):
         return ('Table({name!r}, {data!r}, {caption!r})').format(
@@ -444,7 +444,7 @@ class Table(Export):
             uid=self.uid, created=self.created,
             name=self.name, data_file=self.data_file)
 
-# -- Table, Public API ----------------------------------------------------------
+# -- Table, Public API ---------------------------------------------------
 
     def __gt__(self, publication):
         """Export self (Table) to publication"""
@@ -489,7 +489,7 @@ class Figure(Export):
     """
     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
-# -- Figure creation -----------------------------------------------------------
+# -- Figure creation -----------------------------------------------------
 
     def __init__(self,
                  name, image, data, caption, format='pdf'):
@@ -516,7 +516,7 @@ class Figure(Export):
 
         self.fig_scale = 1     # Scaling of figures.
 
-# -- Override repr and str -----------------------------------------------------
+# -- Override repr and str -----------------------------------------------
 
     def __repr__(self):
         return ('Figure({name!r}, {image!r}, '
@@ -533,7 +533,7 @@ class Figure(Export):
             name=self.name, image_file=self.image_file,
             data_file=self.data_file)
 
-# -- Figure, Public API ---------------------------------------------------------
+# -- Figure, Public API --------------------------------------------------
 
     def __gt__(self, publication):
         """Export self (Figure) to publication"""

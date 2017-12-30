@@ -1,59 +1,107 @@
 import os.path
-
+from shutil import rmtree
 from kallysto.publication import Publication
 import pytest
 
-# Test fixtures to setup bridge.
+# -- Test Fixtures ------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
-def config1():
-    return {'notebook': 'nb1',
-            'title': 'pub1',
-            'root_path': 'tests/sandbox/pub/'}
+def interim_config():
+    return {'notebook': 'interim_nb',
+            'title': 'interim_report',
+            'root_path': 'tests/sandbox/testpub/'}
 
 
 @pytest.fixture(scope="module")
-def config2():
-    return {'notebook': 'nb2',
-            'title': 'pub2',
-            'root_path': 'tests/sandbox/pub/'}
+def final_config():
+    return {'notebook': 'final_nb',
+            'title': 'final_report',
+            'root_path': 'tests/sandbox/testpub/'}
 
 
-def check_init_publication(config):
-    pub1 = Publication(**config)
+@pytest.fixture(scope="module")
+def interim_config_without_defs():
+    return {'notebook': 'interim_nb',
+            'title': 'interim_report',
+            'root_path': 'tests/sandbox/testpub/',
+            'write_defs': False}
 
-    assert type(pub1) == Publication
+
+@pytest.fixture(scope="module")
+def final_config_without_defs():
+    return {'notebook': 'final_nb',
+            'title': 'final_report',
+            'root_path': 'tests/sandbox/testpub/',
+            'write_defs': False}
+
+
+@pytest.fixture(scope="module")
+def interim_config_with_defs():
+    return {'notebook': 'interim_nb',
+            'title': 'interim_report',
+            'root_path': 'tests/sandbox/testpub/',
+            'write_defs': True}
+
+
+@pytest.fixture(scope="module")
+def final_config_with_defs():
+    return {'notebook': 'final_nb',
+            'title': 'final_report',
+            'root_path': 'tests/sandbox/testpub/',
+            'write_defs': True}
+
+
+def check_publication_dirs(config):
+
+    rmtree(config['root_path'])  # Start with a blank state.
+
+    pub = Publication(**config)
+
+    assert type(pub) == Publication
 
     # Check that the root_path exists.
-    assert os.path.isdir(pub1.root_path) is True
+    assert os.path.isdir(pub.root_path)
 
     # Check for the standard kallysto dirs.
-    assert os.path.isdir(pub1.figs_path) is True
-    assert os.path.isdir(pub1.data_path) is True
-    assert os.path.isdir(pub1.defs_path) is True
+    assert os.path.isdir(pub.figs_path)
+    assert os.path.isdir(pub.data_path)
+    assert os.path.isdir(pub.logs_path)
 
-    # Check for the standard kallysto defs and logs files.
-    assert os.path.isfile(pub1.defs_file) is True
-    assert os.path.isfile(pub1.logs_file) is True
+    # Check the defs_file.
+    if not('write_defs' in config):
+        assert os.path.isdir(pub.defs_path)
+        assert os.path.isfile(pub.defs_file)
+    elif config['write_defs']:
+        assert os.path.isdir(pub.defs_path)
+        assert os.path.isfile(pub.defs_file)
+    else:
+        assert os.path.isdir(pub.defs_path) is False
+        assert os.path.isfile(pub.defs_file) is False
+
+    # Check the logs file.
+    assert os.path.isfile(pub.logs_file)
 
 
-def test_init_publication_with_config1(config1):
-    check_init_publication(config1)
+def test_interim_pub(interim_config):
+    check_publication_dirs(interim_config)
 
 
-def test_init_publication_with_config2(config2):
-    check_init_publication(config2)
+def test_final_pub(final_config):
+    check_publication_dirs(final_config)
 
 
-def test_delete_publication_with_config1(config1):
-    pub1 = Publication(**config1)
+def test_interim_pub_with_defs(interim_config_without_defs):
+    check_publication_dirs(interim_config_without_defs)
 
-    pub1.delete()
-    assert os.path.isdir(pub1.figs_path) is False
-    assert os.path.isdir(pub1.data_path) is False
-    assert os.path.isdir(pub1.defs_path) is False
 
-    # Check for the standard kallysto defs and logs files.
-    assert os.path.isfile(pub1.defs_file) is False
-    assert os.path.isfile(pub1.logs_file) is False
+def test_final_pub_with_defs(final_config_without_defs):
+    check_publication_dirs(final_config_without_defs)
+
+
+def test_interim_pub_without_defs(interim_config_without_defs):
+    check_publication_dirs(interim_config_without_defs)
+
+
+def test_final_pub_without_defs(final_config_without_defs):
+    check_publication_dirs(final_config_without_defs)
