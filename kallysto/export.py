@@ -189,6 +189,7 @@ from time import time, strftime
 from datetime import datetime
 
 import pandas as pd
+import numpy as np
 
 # Some basic logging to display.
 # display_logger = logging.getLogger("Kallysto")
@@ -220,26 +221,28 @@ class Export():
 
     display_logger = logging.getLogger("Kallysto")
     _exports = OrderedDict()
+# TODO: Need tocheck this _exports and relationship to exports in Publication.
+# When creating a new Pub with override==True, _exports should be empty.
 
 # -- Export, public API -----------------------------------------
 
     @classmethod
-    def value(cls, name, value, overwrite=False):
+    def value(cls, name, value, overwrite=True):
         """Create Value export with a name check."""
         existing = Export.name_exists(name, overwrite, cls.list())
         return existing if existing else Value(name, value)
 
     @classmethod
-    def table(cls, name, data, caption, overwrite=False):
+    def table(cls, name, data, caption, overwrite=True):
         """Create Table export with a name check."""
         existing = Export.name_exists(name, overwrite, cls.list())
         return existing if existing else Table(name, data, caption)
 
     @classmethod
-    def figure(cls, name, image, data, caption, format='pdf', overwrite=False):
+    def figure(cls, name, image, data, caption, text_width=1, format='pdf', overwrite=True):
         """Create Figure export with a name check."""
         existing = Export.name_exists(name, overwrite, cls.list())
-        return existing if existing else Figure(name, image, data, caption, format)
+        return existing if existing else Figure(name, image, data, caption, text_width, format)
 
     @classmethod
     def list(cls):
@@ -355,9 +358,13 @@ class Value(Export):
 
         super().__init__(name, self, self.__class__)
 
-        # The value-specific fields; just value.
-        self.value = value
-
+        if (isinstance(value, int)):
+            self.value = "{:,}".format(value)
+        elif (isinstance(value, float)) | (isinstance(value, np.float64)):
+            self.value = "{:,}".format(round(value, 2))
+        else:
+            self.value = value
+       
 # -- Override repr and str -----------------------------------------------
 
     def __repr__(self):
@@ -381,11 +388,11 @@ class Value(Export):
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export}').format(
-            log_id=time(),
-            logged=strftime('%X %x %Z'),
-            title=publication.title,
-            notebook=publication.notebook,
-            export=self)
+                            log_id=time(),
+                            logged=strftime('%X %x %Z'),
+                            title=publication.title,
+                            notebook=publication.notebook,
+                            export=self)
 
         return super().__gt__(publication)
 
@@ -463,7 +470,8 @@ class Table(Export):
             data_path=publication.data_path)
 
         # Save the data to .csv
-        self.data.to_csv(publication.data_path + self.data_file)
+        if hasattr(self.data, 'to_csv'):
+            self.data.to_csv(publication.data_path + self.data_file)
 
         return super().__gt__(publication)
 
@@ -492,7 +500,7 @@ class Figure(Export):
 # -- Figure creation -----------------------------------------------------
 
     def __init__(self,
-                 name, image, data, caption, format='pdf'):
+                 name, image, data, caption, text_width=1, format='pdf'):
         """Initialise a new Figure.
 
         Args:
@@ -510,6 +518,7 @@ class Figure(Export):
         self.data = data
         self.caption = caption
         self.format = format
+        self.text_width = text_width
 
         self.data_file = "{}.csv".format(name)          # The source-data file.
         self.image_file = "{}.{}".format(name, format)  # The figure image.

@@ -105,7 +105,8 @@ class Latex():
                '% Notebook: {notebook}\n'
                '\\providecommand{{\{name}}}\n{{dummy}}\n'
                '\\renewcommand{{\{name}}}{{\n\\begin{{figure}}\n'
-               '\\includegraphics[width=1\\textwidth]'
+               '\\center'
+               '\\includegraphics[width={text_width}\\textwidth]'
                '{{{image_file}}}\n\\caption{{{caption}}}\n'
                '\\label{{{name}}}\n\\end{{figure}}}}\n\n')
 
@@ -115,6 +116,7 @@ class Latex():
                           title=publication.title,
                           notebook=publication.notebook,
                           name=export.name,
+                          text_width=export.text_width,
                           caption=export.caption,
                           image_file=publication.main_path +
                           publication.title + '/' +

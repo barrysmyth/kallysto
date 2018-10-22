@@ -107,13 +107,13 @@ Settings:
   write_defs: True
 """
 
-# -- Publication ---------------------------------------------------------------
+# -- Publication ---------------------------------------------------------
 
 import logging
 import os
 from shutil import rmtree
 from kallysto.formatter import Latex
-
+from kallysto.export import Export
 
 class Publication(object):
     """Create a  publication linking a notebook to a publication title.
@@ -159,7 +159,7 @@ class Publication(object):
         logs_file: name of log file.
     """
 
-# -- Init ----------------------------------------------------------------------
+# -- Init ---------------------------------------------------------------------
 
     def __init__(self, notebook, title,
 
@@ -231,7 +231,7 @@ class Publication(object):
         # Setup logging; defs logger and audit logger.
         self.setup_logging()
 
-# -- @properties ---------------------------------------------------------------
+# -- @properties ---------------------------------------------------------
 
     @property
     def figs_path(self):
@@ -262,7 +262,7 @@ class Publication(object):
         return self.logs_path + self.logs_filename
 
 
-# -- Init Helpers --------------------------------------------------------------
+# -- Init Helpers --------------------------------------------------------
 
     def cleanup_notebook_files(self):
         """Cleanup existing publication files if they exist.
@@ -383,7 +383,7 @@ class Publication(object):
             defs_logger_handler = logging.FileHandler(self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 
-# -- Overriding __repr__ and __str__ -------------------------------------------
+# -- Overriding __repr__ and __str__ -------------------------------------
 
     def __repr__(self):
         return ("Publication({notebook}, {title}, "
@@ -437,7 +437,7 @@ class Publication(object):
             formatter=self.formatter,
             write_defs=self.write_defs,)
 
-# -- Publication, Public API ----------------------------------------------------------------
+# -- Publication, Public API ---------------------------------------------
 
     def export(self, export):
         """Export the definition and log the export."""

@@ -16,19 +16,19 @@ import numpy as np
 
 @pytest.fixture(scope="module")
 def pub_path():
-    return 'tests/sandbox/pub/'
+    return 'tests/sandbox/pub/'  # The path to the publication root.
 
 
 @pytest.fixture(scope="module")
 def draft(pub_path):
-    return Publication(notebook='draft_nb',
+    return Publication(notebook='draft_nb',  # A test publictaion (draft_nb).
                        title='draft_report',
                        root_path=pub_path)
 
 
 @pytest.fixture(scope="module")
 def final(pub_path):
-    return Publication(notebook='final_nb',
+    return Publication(notebook='final_nb',  # A test publictaion (final_nb).
                        title='final_report',
                        root_path=pub_path)
 
@@ -63,7 +63,7 @@ def figure1(df):
                          caption='caption 1')
 
 
-# -- Test Basic Exports ------------------------------------------------------------
+# -- Test Basic Exports --------------------------------------------------
 
 
 def test_value1(value1):
@@ -98,10 +98,3 @@ def test_figure1(figure1, df):
 
 def test_value1_export_to_draft(draft, value1, pub_path):
     value1 > draft
-
-
-#
-# def test_value1_export_to_pub1(pub1, value1):
-#     value1 > pub1
-#
-#     assert os.path.isfile(pub1.defs_file) is True
