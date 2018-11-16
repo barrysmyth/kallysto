@@ -116,48 +116,17 @@ from kallysto.formatter import Latex
 from kallysto.export import Export
 
 class Publication(object):
-    """Create a  publication linking a notebook to a publication title.
+    """Create a link (export path) to a given publication.
 
-    Creates a set of subfolders within a publication title folder inside
-    the publication root of the project. The location of this publication
-    root, relative to a notebook, and the names of the created
-    subfolders can be configured through the constructor.
+    This creates a directory called `title` at `root_path`, setting up
+    subdirectories inside it for data/, defs/, figs/, and logs/, which will
+    hold corresponding export objects. The names of these subdirectories,
+    and associated files (`defs_file` and `logs_file`), are configurable
+    as params of the publication link constructor. The `overwrite` and
+    `delete_log` params control whether existing data is overwritten or left
+    in place when the publication link is created.
 
-    Also includes configurations for whether or not to overwrite existing
-    folders/files/logs as well as whether to create seperate definition files,
-    and when definition files are to be created, which formatter to use.
-
-    Attributes:
-
-        display_logger: basic logger for information and warning messages.
-        audit_logger: main export logger writing to log_file.
-
-        exports: a list of the exports
-        formatter: a format class for formatting the export defintions.
-        write_defs: whether or not to write a defintions file.
-
-        overwrite: whether or not to overwrite existing publications files/dirs.
-        delete_log: whether or not to delete existing log.
-
-        title: publication title (user defined).
-        notebook: source notebook name or nickname (user defined).
-
-        root_path: relative path from source notebook to publication root.
-        main_path: relative path from publication main (e.g. main.tex) to root.
-
-        figs_dir: directory name for fig exports.
-        data_dir: directory name for data exports (for tables & figures)
-        defs_dir: directory name for export definitions.
-        logs_dir: directory name for log.
-
-        figs_path: path to figs_dir
-        data_path: path to data_dir
-        defs_path: path to defs_dir
-        logs_path: path to logs_dir
-
-        defs_file: name of definitions file.
-        logs_file: name of log file.
-    """
+        """
 
 # -- Init ---------------------------------------------------------------------
 
@@ -176,45 +145,56 @@ class Publication(object):
                  defs_dir='defs/',
                  data_dir='data/',
                  logs_dir='logs/',
+                 tex_dir='tex/',
                  defs_filename='_definitions.tex',
                  logs_filename='_kallysto.log',):
         """Constructor for a new pub, connecting a notebook to pub title.
-
+        
         Args:
-            notebook: the notebook in which the publication is created.
-            title: the title of the publication.
+            notebook: the name/nickname for the source nb.
+            title: creates a subdir of this name in pub root.
 
-            formatter: the formatter to use for creating export defintions.
+            write_defs: defintions file created? (needed for Latex. If False
+            then no definitions file is created but figs/data are still exported,
+            which can be useful if (manually) importing in other pub formats.
 
-            root_path: the relative path to the pub root from the notebook.
-            main_path: the relative path from main pub source to pub root.
+            overwrite: overwrite existing publications files/dirs?
+            delete_log: delete existing log?
 
-            defs_dir: the name of the defintions subfolder (e.g. defs).
-            figs_dir: the name of the subfolder to hold images for figs.
-            data_dir: the subfolder to hold data files for tables/figs.
-            logs_dir: the name of the subfolder holding the kallysto log.
+            root_path: relative path from notebook to publication root (pubs/).
+            main_path: relative path from main .tex to root (pubs/).
 
-            overwrite: If true delete pub folders and files for publication.
-            delete_log: If true rm log folder & file for the publication.
+            figs_dir: directory name for fig exports.
+            data_dir: directory name for data exports (for tables & figures)
+            defs_dir: directory name for export definitions.
+            logs_dir: directory name for log.
+
+            defs_file: name of definitions file.
+            logs_file: name of log file.
+
         """
+
         # A simple display logger that writes progress to screen.
         self.display_logger = logging.getLogger(
             "Kallysto:{}:{}: ".format(title, notebook))
         self.display_logger.setLevel(logging.INFO)
 
-        self.exports = []  # To keep track of exports made thru pub.
+        self.exports = []  # Exports sent to the pub.
 
         self.formatter = formatter
 
         self.write_defs = write_defs
         self.title = title
         self.notebook = notebook
+
         self.root_path = root_path
         self.main_path = main_path
         self.defs_dir = defs_dir
         self.logs_dir = logs_dir
         self.figs_dir = figs_dir
         self.data_dir = data_dir
+        self.tex_dir = tex_dir
+
         self.defs_filename = defs_filename
         self.logs_filename = logs_filename
 
@@ -231,7 +211,14 @@ class Publication(object):
         # Setup logging; defs logger and audit logger.
         self.setup_logging()
 
+        # Update kallysto.tex include file.
+        self.update_kallyso_includes()
+
 # -- @properties ---------------------------------------------------------
+
+    # The following properties define paths to the various directories to be
+    # used to store different types, and components of, exports associated
+    # with a given notebook.
 
     @property
     def figs_path(self):
@@ -267,37 +254,56 @@ class Publication(object):
     def cleanup_notebook_files(self):
         """Cleanup existing publication files if they exist.
 
-        Delete folders and files associated with the current publication. Dont
-        delete the central log unless expressly indicated by delete_log.
+        Delete folders (figs, data, etc) and files associated with the
+        current publication, but do not delete the central log unless
+        expressly indicated by delete_log.
 
         Args:
-            delete_log: If True, delete central log file.
+            delete_log: delete central log file?
         """
+
         self.display_logger.info(
-            'Removing export files for {}:{}'.format(self.title, self.notebook))
+            'Removing export files for %s:%s', self.title, self.notebook)
 
         # If delete_log == True then delete log file.
         if self.delete_log:
+            if os.path.isfile(self.logs_file):
+                try:
+                    self.display_logger.info(
+                        'Trying to remove %s.', self.logs_file)
+
+                    os.remove(self.logs_file)
+
+                    self.display_logger.info(
+                        'Removed %s.', self.logs_file)
+
+                except OSError:
+                    self.display_logger.warning(
+                        'Could not remove %s', self.logs_file)
+            else:
+                self.display_logger.info(
+                    '%s did not exist.', self.logs_file)
+
+
+        if os.path.isfile(self.defs_file):
+
+            # Remove notebook definitions file, if it exists.
             try:
                 self.display_logger.info(
-                    'Trying to remove {}.'.format(self.logs_file))
-                os.remove(self.logs_file)
+                    'Trying to remove %s.', self.defs_file)
+
+                os.remove(self.defs_file)
+
                 self.display_logger.info(
-                    'Removed {}.'.format(self.logs_file))
+                    'Removed %s.', self.defs_file)
 
             except OSError:
-                pass
+                self.display_logger.warning(
+                    'Could not remove %s.', self.defs_file)
 
-        # Remove notebook definitions file, if it exists.
-        try:
+        else:
             self.display_logger.info(
-                'Trying to remove {}.'.format(self.defs_file))
-            os.remove(self.defs_file)
-            self.display_logger.info(
-                'Removed {}.'.format(self.defs_file))
-
-        except OSError:
-            pass
+                '%s did not exist.', self.defs_file)
 
         # Prepare to remove the notebook folders for defs, figs and data.
         folders = [self.defs_path, self.figs_path, self.data_path]
@@ -307,31 +313,28 @@ class Publication(object):
         # Next, delete the folders themselves.
         for folder in folders:
             try:
-                self.display_logger.info('Trying to remove {}.'.format(folder))
+                self.display_logger.info('Trying to remove %s.', folder)
                 rmtree(folder)
-                self.display_logger.info('Removed {}.'.format(folder))
+                self.display_logger.info('Removed %s.', folder)
 
             except OSError:
                 self.display_logger.info(
-                    'Failed to remove {}. Probably no directory.'.format(
-                        folder))
-                pass
+                    'Failed to remove %s. Probably no directory.', folder)
+
 
     def setup_notebook_directories(self):
         """Create the folders and files for a new publication."""
 
         self.display_logger.info(
-            'Creating export locations for {}:{}.'.format(
-                self.title, self.notebook))
+            'Creating export locations for %s:%s.', self.title, self.notebook)
 
         # Create main root if it doesn't exist;  top-level pubs directory.
-        self.display_logger.info('Creating {}.'.format(self.root_path))
+        self.display_logger.info('Creating %s.', self.root_path)
         os.makedirs(self.root_path, exist_ok=True)
 
         # Create the title if it doesn't exist;
         # self.pubroot = root/title/, top-level folder for this pub title.
-        self.display_logger.info(
-            'Creating {}{}.'.format(self.root_path, self.title))
+        self.display_logger.info('Creating %s%s.', self.root_path, self.title)
         os.makedirs(self.root_path + self.title, exist_ok=True)
 
         # Prepare to create main folders ...
@@ -343,18 +346,18 @@ class Publication(object):
 
         # Create main folders for defs, figs, data and logs if necessary.
         for folder in folders:
-            self.display_logger.info('Creating {}.'.format(folder))
+            self.display_logger.info('Creating %s.', folder)
             os.makedirs(folder, exist_ok=True)
 
         # Create the definitions file if needed.
         if self.write_defs:
             self.display_logger.info(
-                'Creating {} if it does not exist.'.format(self.defs_file))
+                'Creating %s if it does not exist.', self.defs_file)
             open(self.defs_file, 'a').close()
 
         # Create logs file.
         self.display_logger.info(
-            'Creating {} if it does not exist.'.format(self.logs_file))
+            'Creating %s if it does not exist.', self.logs_file)
         open(self.logs_file, 'a').close()
 
     def setup_logging(self):
@@ -383,6 +386,27 @@ class Publication(object):
             defs_logger_handler = logging.FileHandler(self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 
+
+    def update_kallyso_includes(self):
+        """Add an include statetment for current notebook in kallysto.tex"""
+
+        # The path to the main .tex file.
+        kallysto_path = '{}{}/{}kallysto.tex'.format(
+            self.root_path, self.title, self.tex_dir)
+
+        include = Latex.include(self)
+
+        # Append a Latex include to the defs file for the publication/notebook.
+        with open(kallysto_path, "r") as kallysto:
+            all_includes = kallysto.read()
+
+            # If the current include is not in the file then add it.
+            if include not in all_includes:
+                all_includes = all_includes+include
+
+        with open(kallysto_path, "w") as kallysto:
+            kallysto.write(all_includes)
+
 # -- Overriding __repr__ and __str__ -------------------------------------
 
     def __repr__(self):
@@ -398,19 +422,19 @@ class Publication(object):
                 "logs_dir={logs_dir}, "
                 "definitions_file={definitions_file}, "
                 "logs_file='_kallysto.log')").format(
-            notebook=self.notebook,
-            title=self.title,
-            formatter=self.formatter,
-            write_defs=self.write_defs,
-            overwrite=self.overwrite,
-            delete_log=self.delete_log,
-            root_path=self.root_path,
-            main_path=self.main_path,
-            figs_dir=self.figs_dir,
-            defs_dir=self.defs_dir,
-            data_dir=self.data_dir,
-            logs_dir=self.logs_dir,
-            definitions_file=self.defs_file,)
+                    notebook=self.notebook,
+                    title=self.title,
+                    formatter=self.formatter,
+                    write_defs=self.write_defs,
+                    overwrite=self.overwrite,
+                    delete_log=self.delete_log,
+                    root_path=self.root_path,
+                    main_path=self.main_path,
+                    figs_dir=self.figs_dir,
+                    defs_dir=self.defs_dir,
+                    data_dir=self.data_dir,
+                    logs_dir=self.logs_dir,
+                    definitions_file=self.defs_file,)
 
     def __str__(self):
         return ("Locations:\n"
@@ -424,18 +448,18 @@ class Publication(object):
                 "  delete_log: {delete_log}\n"
                 "  formatter: {formatter}\n"
                 "  write_defs: {write_defs}").format(
-            title=self.title,
-            root_path=self.root_path,
-            defs_path=self.defs_path,
-            defs_file=self.defs_file.split('/')[-1],
-            figs_path=self.figs_path,
-            data_path=self.data_path,
-            logs_path=self.logs_path,
-            logs_file=self.logs_file.split('/')[-1],
-            overwrite=self.overwrite,
-            delete_log=self.delete_log,
-            formatter=self.formatter,
-            write_defs=self.write_defs,)
+                    title=self.title,
+                    root_path=self.root_path,
+                    defs_path=self.defs_path,
+                    defs_file=self.defs_file.split('/')[-1],
+                    figs_path=self.figs_path,
+                    data_path=self.data_path,
+                    logs_path=self.logs_path,
+                    logs_file=self.logs_file.split('/')[-1],
+                    overwrite=self.overwrite,
+                    delete_log=self.delete_log,
+                    formatter=self.formatter,
+                    write_defs=self.write_defs,)
 
 # -- Publication, Public API ---------------------------------------------
 

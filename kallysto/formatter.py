@@ -122,3 +122,18 @@ class Latex():
                           publication.title + '/' +
                           publication.figs_dir +
                           publication.notebook + '/' + export.image_file)
+
+
+    @staticmethod
+    def include(publication):
+
+        path_to_defs_file = '{}{}/{}{}/{}'.format(
+            publication.main_path, publication.title, 
+            publication.defs_dir, publication.notebook, 
+            publication.defs_filename)
+
+
+        msg = '\\input{{{}}}\n'.format(path_to_defs_file)
+
+        return msg
+
