@@ -148,8 +148,9 @@ class Publication(object):
                  tex_dir='tex/',
                  defs_filename='_definitions.tex',
                  logs_filename='_kallysto.log',):
+
         """Constructor for a new pub, connecting a notebook to pub title.
-        
+
         Args:
             notebook: the name/nickname for the source nb.
             title: creates a subdir of this name in pub root.
@@ -247,6 +248,18 @@ class Publication(object):
     @property
     def logs_file(self):
         return self.logs_path + self.logs_filename
+    
+    @property
+    def kallysto_path(self):
+        return '{}{}/{}'.format(
+            self.root_path, self.title, self.tex_dir)
+    
+    @property
+    def kallysto_file(self):
+        return self.kallysto_path + 'kallysto.tex'
+
+
+        
 
 
 # -- Init Helpers --------------------------------------------------------
@@ -257,6 +270,9 @@ class Publication(object):
         Delete folders (figs, data, etc) and files associated with the
         current publication, but do not delete the central log unless
         expressly indicated by delete_log.
+        
+        Note: does not cleanup tex_dir as this is assumed to contain user
+        generate files.
 
         Args:
             delete_log: delete central log file?
@@ -338,7 +354,7 @@ class Publication(object):
         os.makedirs(self.root_path + self.title, exist_ok=True)
 
         # Prepare to create main folders ...
-        folders = [self.figs_path, self.data_path, self.logs_path]
+        folders = [self.figs_path, self.data_path, self.logs_path, self.kallysto_path]
 
         # Add defs folder if definitions are to be written.
         if self.write_defs:
@@ -359,6 +375,14 @@ class Publication(object):
         self.display_logger.info(
             'Creating %s if it does not exist.', self.logs_file)
         open(self.logs_file, 'a').close()
+        
+        # Create kallysto file if it does not exist.
+        if not os.path.isfile(self.kallysto_file):
+            self.display_logger.info(
+            'Creating %s as it does not exist.', self.kallysto_file)
+            open(self.kallysto_file, 'a').close()
+            
+        
 
     def setup_logging(self):
         """Setup Kallysto's logging.
@@ -390,21 +414,21 @@ class Publication(object):
     def update_kallyso_includes(self):
         """Add an include statetment for current notebook in kallysto.tex"""
 
-        # The path to the main .tex file.
-        kallysto_path = '{}{}/{}kallysto.tex'.format(
-            self.root_path, self.title, self.tex_dir)
+#         # The path to the main .tex file.
+#         kallysto_path = '{}{}/{}kallysto.tex'.format(
+#             self.root_path, self.title, self.tex_dir)
 
         include = Latex.include(self)
 
         # Append a Latex include to the defs file for the publication/notebook.
-        with open(kallysto_path, "r") as kallysto:
+        with open(self.kallysto_file, "r") as kallysto:
             all_includes = kallysto.read()
 
             # If the current include is not in the file then add it.
             if include not in all_includes:
                 all_includes = all_includes+include
 
-        with open(kallysto_path, "w") as kallysto:
+        with open(self.kallysto_file, "w") as kallysto:
             kallysto.write(all_includes)
 
 # -- Overriding __repr__ and __str__ -------------------------------------
