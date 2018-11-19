@@ -239,10 +239,12 @@ class Export():
         return existing if existing else Table(name, data, caption)
 
     @classmethod
-    def figure(cls, name, image, data, caption, text_width=1, format='pdf', overwrite=True):
+    def figure(cls, name, image, data, caption, text_width=1, 
+               format='pdf', overwrite=True):
         """Create Figure export with a name check."""
         existing = Export.name_exists(name, overwrite, cls.list())
-        return existing if existing else Figure(name, image, data, caption, text_width, format)
+        return existing if existing else Figure(
+            name, image, data, caption, text_width, format)
 
     @classmethod
     def list(cls):
@@ -388,11 +390,12 @@ class Value(Export):
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export}').format(
-                            log_id=time(),
+                            log_id=self.uid,
                             logged=strftime('%X %x %Z'),
                             title=publication.title,
-                            notebook=publication.notebook,
-                            export=self)
+                            notebook=publication.notebook_file,
+                            export=self.__class__.__name__)  # VALUE
+
 
         return super().__gt__(publication)
 
@@ -453,27 +456,29 @@ class Table(Export):
 
 # -- Table, Public API ---------------------------------------------------
 
-    def __gt__(self, publication):
+    def __gt__(self, pub):
         """Export self (Table) to publication"""
 
         # Set the definition string using the table formatter.
-        self.def_str = publication.formatter.table(self, publication)
+        self.def_str = pub.formatter.table(self, pub)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export},{data_path}').format(
-            log_id=time(),
+            log_id=self.uid,
             logged=strftime('%X %x %Z'),
-            title=publication.title,
-            notebook=publication.notebook,
-            export=self,
-            data_path=publication.data_path)
+            title=pub.title,
+            notebook=pub.notebook_file,
+            export=self.__class__.__name__, # TABLE
+            data_path= os.path.normpath(
+                '../' + pub.data_dir + pub.notebook + '/' + self.data_file),
+        )
 
         # Save the data to .csv
         if hasattr(self.data, 'to_csv'):
-            self.data.to_csv(publication.data_path + self.data_file)
+            self.data.to_csv(pub.data_path + self.data_file)
 
-        return super().__gt__(publication)
+        return super().__gt__(pub)
 
 # -- Figure ---------------------------------------------------------
 
@@ -544,28 +549,32 @@ class Figure(Export):
 
 # -- Figure, Public API --------------------------------------------------
 
-    def __gt__(self, publication):
+    def __gt__(self, pub):
         """Export self (Figure) to publication"""
 
         # Set the definition string using the figure formatter.
-        self.def_str = publication.formatter.figure(self, publication)
+        self.def_str = pub.formatter.figure(self, pub)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export},{figs_path},{data_path},').format(
-            log_id=time(),
+            log_id=self.uid,
             logged=strftime('%X %x %Z'),
-            title=publication.title,
-            notebook=publication.notebook,
-            figs_path=publication.figs_path,
-            data_path=publication.data_path,
-            export=self)
-
+            title=pub.title,
+            notebook=pub.notebook_file,
+            figs_path=\
+                os.path.normpath(
+                    '../' + pub.figs_dir + pub.notebook + '/' + self.image_file),
+            data_path= os.path.normpath(
+                '../' + pub.data_dir + pub.notebook + '/' + self.data_file),
+            export=self.__class__.__name__  # FIGURE
+        )
+        
         # Save the data to .csv
-        self.data.to_csv(publication.data_path + self.data_file)
+        self.data.to_csv(pub.data_path + self.data_file)
 
         # Save the image.
-        self.image.savefig(publication.figs_path +
+        self.image.savefig(pub.figs_path +
                            self.image_file, format=self.format)
 
-        return super().__gt__(publication)
+        return super().__gt__(pub)
