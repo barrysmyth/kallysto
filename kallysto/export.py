@@ -14,7 +14,7 @@
 #
 # Copyright 2017 Barry Smnyth
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy
+# Permission
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -381,23 +381,26 @@ class Value(Export):
 
 # -- Value, Public API ---------------------------------------------------
 
-    def __gt__(self, publication):
+    def __gt__(self, pub):
         """Export self (Value) to publication."""
 
         # Set the definition string using the value formatter.
-        self.def_str = publication.formatter.value(self, publication)
+        self.def_str = pub.formatter.value(self, pub)
+
+        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
+        notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export}').format(
                             log_id=self.uid,
                             logged=strftime('%X %x %Z'),
-                            title=publication.title,
-                            notebook=publication.notebook_file,
+                            title=pub.title,
+                            notebook=notebook_from_logs,
                             export=self.__class__.__name__)  # VALUE
 
 
-        return super().__gt__(publication)
+        return super().__gt__(pub)
 
 # -- Table ---------------------------------------------------------------
 
@@ -461,6 +464,14 @@ class Table(Export):
 
         # Set the definition string using the table formatter.
         self.def_str = pub.formatter.table(self, pub)
+        
+        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
+        notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
+        
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
+        
+        data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
@@ -468,15 +479,17 @@ class Table(Export):
             log_id=self.uid,
             logged=strftime('%X %x %Z'),
             title=pub.title,
-            notebook=pub.notebook_file,
+            notebook=notebook_from_logs,
             export=self.__class__.__name__, # TABLE
-            data_path= os.path.normpath(
-                '../' + pub.data_dir + pub.notebook + '/' + self.data_file),
+            
+            # The path to the data file.
+            data_path=data_file_from_tex,  # path to data from tex.
         )
 
         # Save the data to .csv
+        # The data is saved from the nb so needs to use path from nb.
         if hasattr(self.data, 'to_csv'):
-            self.data.to_csv(pub.data_path + self.data_file)
+            self.data.to_csv(data_file_from_nb)
 
         return super().__gt__(pub)
 
@@ -555,26 +568,37 @@ class Figure(Export):
         # Set the definition string using the figure formatter.
         self.def_str = pub.formatter.figure(self, pub)
 
+        
+        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
+        notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
+        
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
+        image_file_from_tex = pub.path_to(pub.figs_path + '/' + self.image_file, start=from_tex)
+
+        
+        data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
+        image_file_from_nb = pub.path_to(pub.figs_path + '/' + self.image_file)
+
+
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export},{figs_path},{data_path},').format(
             log_id=self.uid,
             logged=strftime('%X %x %Z'),
             title=pub.title,
-            notebook=pub.notebook_file,
-            figs_path=\
-                os.path.normpath(
-                    '../' + pub.figs_dir + pub.notebook + '/' + self.image_file),
-            data_path= os.path.normpath(
-                '../' + pub.data_dir + pub.notebook + '/' + self.data_file),
+            notebook=notebook_from_logs,
+            figs_path=image_file_from_tex,
+            data_path=data_file_from_tex,
             export=self.__class__.__name__  # FIGURE
         )
         
         # Save the data to .csv
-        self.data.to_csv(pub.data_path + self.data_file)
-
+        # The data is saved from the nb so needs to use path from nb.
+        if hasattr(self.data, 'to_csv'):
+            self.data.to_csv(data_file_from_nb)
+            
         # Save the image.
-        self.image.savefig(pub.figs_path +
-                           self.image_file, format=self.format)
+        self.image.savefig(image_file_from_nb)
 
         return super().__gt__(pub)
