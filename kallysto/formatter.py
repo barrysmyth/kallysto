@@ -64,8 +64,10 @@ class Latex():
                '% Exported: {exported}\n'
                '% Title: {title}\n'
                '% Notebook: {notebook}\n'
-               '\\providecommand{{\{name}}}\n{{dummy}}\n'
-               '\\renewcommand{{\{name}}}\n{{{value}}}\n\n')
+               '\\providecommand{{\{name}}}{{\n'
+               'dummy}}\n'
+               '\\renewcommand{{\{name}}}{{\n'
+               '{value}}}\n\n')
 
         # The location of the notebook relative to the defintions file.
         from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
@@ -86,14 +88,21 @@ class Latex():
                '% Exported: {exported}\n'
                '% Title: {title}\n'
                '% Notebook: {notebook}\n'
-               '\\providecommand{{\{name}}}\n{{dummy}}\n'
-               '\\renewcommand{{\{name}}}{{\n\\begin{{table}}[h]\n'
-               '{definition}\caption{{{caption}}}\n'
-               '\label{{tab:{name}}}\\end{{table}}}}\n\n')
+               '\\providecommand{{\{name}}}{{\n'
+               'dummy}}\n'
+               '\\renewcommand{{\{name}}}{{\n'
+               '    \\begin{{table}}[h]\n'
+               '        {definition}\n'
+               '        \\caption{{{caption}}}\n'
+               '        \\label{{{name}}}\n'
+               '    \\end{{table}}\n'
+               '}}\n\n')
 
         # The location of the notebook relative to the defintions file.
         from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
+        
+        indented = '\t\t\t'.join(export.data.to_latex().splitlines(True))
         
         return msg.format(uid=export.uid,
                           created=export.created,
@@ -102,7 +111,7 @@ class Latex():
                           notebook=notebook_from_defs,
                           name=export.name,
                           caption=export.caption,
-                          definition=export.data.to_latex())
+                          definition=indented)
 
     @staticmethod
     def figure(export, pub):
@@ -111,12 +120,17 @@ class Latex():
                '% Exported: {exported}\n'
                '% Title: {title}\n'
                '% Notebook: {notebook}\n'
-               '\\providecommand{{\{name}}}\n{{dummy}}\n'
-               '\\renewcommand{{\{name}}}{{\n\\begin{{figure}}\n'
-               '\\center'
-               '\\includegraphics[width={text_width}\\textwidth]'
-               '{{{image_file}}}\n\\caption{{{caption}}}\n'
-               '\\label{{{name}}}\n\\end{{figure}}}}\n\n')
+               '\\providecommand{{\{name}}}{{\n'
+               'dummy}}\n'
+               '\\renewcommand{{\{name}}}{{\n'
+               '    \\begin{{figure}}\n'
+               '        \\center\n'
+               '        \\includegraphics[width={text_width}\\textwidth]'
+               '{{{image_file}}}\n'
+               '        \\caption{{{caption}}}\n'
+               '        \\label{{{name}}}\n'
+               '    \\end{{figure}}\n'
+               '}}\n\n')
 
         # The location of the notebook relative to the defintions file.
         from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
