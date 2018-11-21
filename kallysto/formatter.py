@@ -88,10 +88,12 @@ class Latex():
                '% Exported: {exported}\n'
                '% Title: {title}\n'
                '% Notebook: {notebook}\n'
+               '% Data file: {data_file}\n'
                '\\providecommand{{\{name}}}{{\n'
                'dummy}}\n'
                '\\renewcommand{{\{name}}}{{\n'
                '    \\begin{{table}}[h]\n'
+               '        \\centering\n'
                '        {definition}\n'
                '        \\caption{{{caption}}}\n'
                '        \\label{{{name}}}\n'
@@ -102,6 +104,9 @@ class Latex():
         from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
         
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
+        
         indented = '\t\t\t'.join(export.data.to_latex().splitlines(True))
         
         return msg.format(uid=export.uid,
@@ -109,6 +114,7 @@ class Latex():
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
                           notebook=notebook_from_defs,
+                          data_file=data_file_from_tex,
                           name=export.name,
                           caption=export.caption,
                           definition=indented)
@@ -120,6 +126,8 @@ class Latex():
                '% Exported: {exported}\n'
                '% Title: {title}\n'
                '% Notebook: {notebook}\n'
+               '% Image file: {image_file}\n'
+               '% Data file: {data_file}\n'
                '\\providecommand{{\{name}}}{{\n'
                'dummy}}\n'
                '\\renewcommand{{\{name}}}{{\n'
@@ -135,16 +143,18 @@ class Latex():
         # The location of the notebook relative to the defintions file.
         from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
-        
+
         # The location of the image (relative to the tex directory).
         from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
         image_file_from_tex = pub.path_to(pub.figs_path + '/' + export.image_file, start=from_tex)
-        
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
+
         return msg.format(uid=export.uid,
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
                           notebook=notebook_from_defs,
+                          data_file=data_file_from_tex,
                           name=export.name,
                           text_width=export.text_width,
                           caption=export.caption,
