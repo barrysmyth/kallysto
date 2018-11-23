@@ -8,7 +8,7 @@ setuptools.setup(
     author="Barry Smyth",
     author_email="barry.smyth@ucd.ie",
 
-    description="Export Python data to Latex publications.",
+    description="Simple Python Exports.",
     long_description=open('README.md').read(),
 
     packages=setuptools.find_packages(),
