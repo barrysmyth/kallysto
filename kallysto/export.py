@@ -166,6 +166,7 @@ class Value(Export):
 
     Attributes:
         value: the value of the Python expression to be exported.
+        data_file: the name of the export data file containing the value.
     """
 #     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
@@ -181,6 +182,9 @@ class Value(Export):
         super().__init__(name, self, self.__class__)
 
         self.value = value
+        self.data_file = "{}.txt".format(name)
+
+
 
 # -- Override repr and str -----------------------------------------------
 
@@ -209,6 +213,8 @@ class Value(Export):
         from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
         notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
 
+        data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
+
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
                         '{export}').format(
@@ -218,7 +224,14 @@ class Value(Export):
                             notebook=notebook_from_logs,
                             export=self.__class__.__name__)  # VALUE
 
-
+        # Save the value to a text file.
+        # Note we cannot use `save_export_component` because the
+        # data is a string and strings have no attribute to write
+        # to a file and it seems unnecessary to wrap values in a new
+        # class just to provide this.
+        with open(data_file_from_nb, "w+") as value_file:
+            value_file.write(str(self.value))
+                    
         # Call the super __gt__ to complete the export transfer 
         # via Publciation (updating definitions, writing log etc.)
         return super().__gt__(pub)
