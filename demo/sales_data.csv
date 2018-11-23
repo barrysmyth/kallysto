@@ -1,0 +1,15 @@
+﻿OrderDate,Region,Rep,Item,Units,Unit Cost,Total
+43106,East,Jones,Pencil,95,1.99,189.05
+43123,Central,Kivell,Binder,50,19.99,999.5
+43140,Central,Jardine,Pencil,36,4.99,179.64
+43157,Central,Gill,Pen,27,19.99,539.73
+43174,West,Sorvino,Pencil,56,2.99,167.44
+43191,East,Jones,Binder,60,4.99,299.4
+43208,Central,Andrews,Pencil,75,1.99,149.25
+43225,Central,Jardine,Pencil,90,4.99,449.1
+43242,West,Thompson,Pencil,32,1.99,63.68
+43259,East,Jones,Binder,60,8.99,539.4
+43276,Central,Morgan,Pencil,90,4.99,449.1
+43293,East,Howard,Binder,29,1.99,57.71
+43310,East,Parent,Binder,81,19.99,1619.19
+43327,East,Jones,Pencil,35,4.99,174.65

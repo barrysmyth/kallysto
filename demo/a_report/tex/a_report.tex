@@ -1,0 +1,25 @@
+\documentclass[10pt]{article} 
+
+\usepackage{booktabs}  % Needed for tables.
+\usepackage{graphicx}  % Needed for figures.
+
+\title{A Report}
+
+\date{}
+
+\begin{document}
+
+\maketitle 
+
+\input{kallysto.tex}   % Include Kallysto defs.
+
+% The text below makes reference to the three 
+% exports made from the sample notebook.
+
+Table \ref{SalesByRepTable} summarises the sales totals by sales rep and the same data is also shown in Figure \ref{SalesByRepBarChart}, for an overall sales total of \TotalSales. Notice how the table and figure references in this paragraph are also dynamically created using references to the appropriate export names.
+
+\SalesByRepTable
+
+\SalesByRepBarChart
+
+\end{document}
