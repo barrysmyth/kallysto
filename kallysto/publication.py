@@ -224,20 +224,17 @@ class Publication(object):
         
         # The  Latex include statment for the current defs file.
         current_include = Latex.include(self)
-
-        # Check is the current include statement exists in the kallysto.tex file.
-        def is_new_include(current_include, kallysto_file):
-            with open(kallysto_file, "r") as kallysto:
-                return current_include not in kallysto.read()
+        
+        with open(kallysto_file, "a+") as kallysto:
             
-        # Append new include statement to kallysto.tex.
-        def append_new_include(current_include, kallysto_file):
-            with open(kallysto_file, "a+") as kallysto:
-                kallysto.write(current_include)
+            kallysto.seek(0)  # return to top of file first.
             
-        # If the current include is new (not in kallysto.tex) then append it.
-        if is_new_include(current_include, kallysto_file):
-            append_new_include(current_include, kallysto_file)
+            all_includes = kallysto.read()  # The current set of includes.
+            
+            # If the current include is not in the file
+            # then add it. Else do nothing.
+            if current_include not in all_includes:
+                kallysto.write(current_include)  # Rewrite new include.
 
 
 # -- Publication, Public API ---------------------------------------------
