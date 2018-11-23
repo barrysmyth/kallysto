@@ -1,4 +1,7 @@
-""" PyTest Fixtures."""
+""" PyTest Fixtures.
+
+A bunch of fixtures that setup publications for use in testing.
+"""
 
 import pytest
 from shutil import rmtree
