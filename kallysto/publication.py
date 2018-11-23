@@ -32,10 +32,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-
-"""
-
 # -- Publication ---------------------------------------------------------
 
 import logging
@@ -45,17 +41,8 @@ from kallysto.formatter import Latex
 from kallysto.export import Export
 
 class Publication(object):
-    """Create a link (export path) to a given publication.
-
-    This creates a directory called `title` at `rel_pub_path`, setting up
-    subdirectories inside it for data/, defs/, figs/, and logs/, which will
-    hold corresponding export objects. The names of these subdirectories,
-    and associated files (`defs_file` and `logs_file`), are configurable
-    as params of the publication link constructor. The `overwrite` and
-    `delete_log` params control whether existing data is overwritten or left
-    in place when the publication link is created.
-
-        """
+    """Managing links from a notebook script to Kallysto publication for exports.
+    """
 
 # -- Init ---------------------------------------------------------------------
 
@@ -66,21 +53,22 @@ class Publication(object):
                  pub_root='../../pubs',  # From notebook to pubs root
                 ):
 
-        """Constructor for a new pub, connecting a notebook to pub title.
+        """Create a new link from the current notebook/script to a Kallysto publciation.
 
         Args:
-            notebook: the name/nickname for the source nb.
-            title: creates a subdir of this name in pub root.
+            notebook: the name/nickname for the source nb; used in Kallysto meta-data.
+            title: the name of the target publications; used to create the
+            Kallysto (file-based) data store for the publication.
 
-            formatter: the formatter to create 'defintiions'
-            write_defs: defintions file created? (needed for Latex. If False
-            then no definitions file is created but figs/data are still exported,
-            which can be useful if (manually) importing in other pub formats.
+            formatter: the formatter to create Kallysto 'defintiions'
+            
+            write_defs: create an export definitions file?
 
-            overwrite: overwrite existing publications files/dirs?
-            delete_log: delete existing log?
+            overwrite: overwrite existing data store? (leaves log intact)
+            fresh_start: delete data store and log.
 
-            rel_pub_path: relative path from notebook to publication root (pubs/).
+            pub_root: path from notebook to publication root; the publication data 
+            store (title) will be created inside the pub_root.
 
         """
         
@@ -89,47 +77,48 @@ class Publication(object):
             "Kallysto:{}:{}: ".format(title, notebook))
         self.display_logger.setLevel(logging.INFO)
 
-        self.exports = []  # Exports sent to the pub.
+#         self.exports = []  # Retain a record of exports to a given publciation.
 
         self.formatter = formatter
 
         self.write_defs = write_defs
         
-        # The publication title and the name of the source notebook.
         self.title, self.notebook = title, notebook        
         
-        # Key directories; convert to absolute paths
-        self.nb_root = os.getcwd()
+        # Key Kallyso locations; at various times paths will be needed from/to
+        # the nb and pub roots.
+        self.nb_root = os.getcwd() # The location of the current notebook/script.
         self.pub_root = os.path.abspath(pub_root)
         
+        # Key Kallysto data store paths to data, figs, defs, logs, tex components. 
         self.data_path= 'data/' + self.notebook
         self.figs_path = 'figs/' + self.notebook
-        
         self.defs_path, self.defs_filename = 'defs/' + self.notebook, '_definitions.tex'
         self.tex_path, self.kallysto_filename  = 'tex', 'kallysto.tex'
         self.logs_path, self.logs_filename = 'logs/', 'kallysto.log'
                 
 
-        # Cleanup/overwrite existing publication.
+        # Cleanup the data store as required.
         self.overwrite = overwrite
         self.fresh_start = fresh_start
 
-        if self.overwrite:
-            self.cleanup_notebook_files()
+        if self.overwrite or self.fresh_start:
+            self.cleanup_data_store()
 
+        # Create/setup the Kallysto data store.
+        self.setup_data_store()
 
+        # Setup logging; defs logger and audit logger.
+        self.setup_logging()
 
+        # Update kallysto.tex include file.
+        self.update_kallyso_includes()
+
+            
 # -- Init Helpers --------------------------------------------------------
 
-    def cleanup_notebook_files(self):
-        """Cleanup existing publication files if they exist.
-
-        Delete folders (figs, data, etc) and files associated with the
-        current publication, but do not delete the central log unless
-        expressly indicated by delete_log.
-        
-        Note: does not cleanup tex_dir as this is assumed to contain user
-        generate files.
+    def cleanup_data_store(self):
+        """Cleanup the Kallysto data store for the current publication.
         """
 
         self.display_logger.info(
@@ -147,49 +136,36 @@ class Publication(object):
         [self.safely_remove_dir(self.path_to(folder))
          for folder in [self.defs_path, self.figs_path, self.data_path]]
         
-        # Create/setup the notebook directories.
-        self.setup_notebook_directories()
-
-        # Setup logging; defs logger and audit logger.
-        self.setup_logging()
-
-        # Update kallysto.tex include file.
-        self.update_kallyso_includes()
         
         
-        
-    def setup_notebook_directories(self):
-        """Create the folders and files for a new publication.
-        
-        This includes creating the publication root directory if it does not exist;
-        adding the publication title subdirectory; creating the main kallysto folders
-        for figs, data etc.; adding a definitions file if needed; creating the
-        kallysto files for logging and .tex includes (if needed)
+    def setup_data_store(self):
+        """Setup the Kallysto directories and files needed for the data store.
         """
 
         self.display_logger.info(
             'Creating export locations for %s:%s.', self.title, self.notebook)
 
-        # Create <pub_root> if it doesn't exist;  top-level pubs directory.
+        # Create the pub_root if it doesn't exist.
         self.display_logger.info('Creating %s.', self.pub_root)
         os.makedirs(self.pub_root, exist_ok=True)
 
-        # Create the <title> if it doesn't exist;
+        # Create the target publication, if it doesn't exist;
         pub_title = self.pub_root + '/' + self.title
         self.display_logger.info('Creating %s.', pub_title)
         os.makedirs(pub_title, exist_ok=True)
 
-        # Create main kallysto folders for figs, data, defs, logs
+        # Create main kallysto folders (inside the target publication root)
+        # for figs, data, defs, logs
         [os.makedirs(self.path_to(folder), exist_ok=True)
          for folder in [self.defs_path, self.figs_path, self.data_path, self.logs_path]]
         
-        # Create the definitions file if needed.
+        # Create a blank definitions file, if needed.
         if self.write_defs:
             defs_file = self.path_to(self.defs_path + '/' + self.defs_filename)
             self.display_logger.info('Creating %s if it does not exist.', defs_file)
             open(defs_file, 'a').close()
 
-        # Create kallysto tex folder and includes file if needed.
+        # Create the Kallysto tex folder, and kallysto.tex (includes file) if needed.
         if self.formatter == Latex:
             os.makedirs(self.path_to(self.tex_path), exist_ok=True)
             
@@ -231,85 +207,48 @@ class Publication(object):
 
 
     def update_kallyso_includes(self):
-        """Add an include statetment for current notebook in kallysto.tex"""
+        """Add an `\input` statetment for current notebook in kallysto.tex
         
-        include = Latex.include(self)
+        The kallysto.tex file contains the Latex instructions to include 
+        any of the defintions files that habve been created by notebooks
+        exporting to the target publication. Each exporting notebook will
+        provide one defintions file. 
+    
+        The purpose of this kallysto.tex file is to make it easy for users
+        to include their exports in the main Latex document, by including
+        this single file (using `input`).
+        """
+        
+        # The kallysto.tex file.
+        kallysto_file = self.path_to(self.tex_path + '/' + self.kallysto_filename)
+        
+        # The  Latex include statment for the current defs file.
+        current_include = Latex.include(self)
 
-        # Append a Latex include to the defs file for the publication/notebook.
-        with open(self.path_to(self.tex_path + '/' + self.kallysto_filename), "r") as kallysto:
-            all_includes = kallysto.read()
+        # Check is the current include statement exists in the kallysto.tex file.
+        def is_new_include(current_include, kallysto_file):
+            with open(kallysto_file, "r") as kallysto:
+                return current_include not in kallysto.read()
+            
+        # Append new include statement to kallysto.tex.
+        def append_new_include(current_include, kallysto_file):
+            with open(kallysto_file, "a+") as kallysto:
+                kallysto.write(current_include)
+            
+        # If the current include is new (not in kallysto.tex) then append it.
+        if is_new_include(current_include, kallysto_file):
+            append_new_include(current_include, kallysto_file)
 
-            # If the current include is not in the file then add it.
-            if include not in all_includes:
-                all_includes = all_includes+include
-
-        with open(self.path_to(self.tex_path + '/' + self.kallysto_filename), "w") as kallysto:
-            kallysto.write(all_includes)
-
-# -- Overriding __repr__ and __str__ -------------------------------------
-
-#     def __repr__(self):
-#         return ("Publication({notebook}, {title}, "
-#                 "formatter={formatter}, "
-#                 "write_defs={write_defs}, "
-#                 "overwrite={overwrite}, delete_log={delete_log}, "
-#                 "rel_pub_path={rel_pub_path}, "
-#                 "main_path={main_path}, "
-#                 "figs_dir={figs_dir}, "
-#                 "defs_dir={defs_dir}, "
-#                 "data_dir={data_dir}, "
-#                 "logs_dir={logs_dir}, "
-#                 "definitions_file={definitions_file}, "
-#                 "logs_file='_kallysto.log', "
-#                 "tex_dir={tex_dir})").format(
-#                     notebook=self.notebook,
-#                     title=self.title,
-#                     formatter=self.formatter,
-#                     write_defs=self.write_defs,
-#                     overwrite=self.overwrite,
-#                     delete_log=self.delete_log,
-#                     rel_pub_path=self.rel_pub_path,
-#                     main_path=self.main_path,
-#                     figs_dir=self.figs_dir,
-#                     defs_dir=self.defs_dir,
-#                     data_dir=self.data_dir,
-#                     logs_dir=self.logs_dir,
-#                     definitions_file=self.defs_file,
-#                     tex_dir=self.tex_dir)
-
-#     def __str__(self):
-#         return ("Locations:\n"
-#                 "  {rel_pub_path}{title}/\n"
-#                 "    {defs_path}{defs_file}\n"
-#                 "    {figs_path}\n"
-#                 "    {data_path}\n"
-#                 "    {logs_path}{logs_file}\n"
-#                 "  {main_path}\n"
-#                 "    {kallysto_file}\n"
-#                 "Settings:\n"
-#                 "  overwrite: {overwrite}\n"
-#                 "  delete_log: {delete_log}\n"
-#                 "  formatter: {formatter}\n"
-#                 "  write_defs: {write_defs}").format(
-#                     title=self.title,
-#                     rel_pub_path=self.rel_pub_path,
-#                     defs_path=self.defs_path,
-#                     defs_file=self.defs_file.split('/')[-1],
-#                     figs_path=self.figs_path,
-#                     data_path=self.data_path,
-#                     logs_path=self.logs_path,
-#                     logs_file=self.logs_file.split('/')[-1],
-#                     main_path=self.main_path,
-#                     kallysto_file=self.kallysto_file,
-#                     overwrite=self.overwrite,
-#                     delete_log=self.delete_log,
-#                     formatter=self.formatter,
-#                     write_defs=self.write_defs,)
 
 # -- Publication, Public API ---------------------------------------------
 
     def export(self, export):
-        """Export the definition and log the export."""
+        """Export the definition and log the export.
+        
+        Write the export defintion to the appropriate definitions file, if needed,
+        log the export in the kallysto.log, and add the export object to the
+        list of exports made for the publication.
+        """
 
         # If write_defs then write definitions file.
         if self.write_defs:
@@ -319,13 +258,21 @@ class Publication(object):
         self.audit_logger.info(export.log_str)
 
         # Add the export to exports.
-        self.exports.append(export)
+#         self.exports.append(export)
 
         return export
     
     
     def path_to(self, to_dir, start=None):
-        """Determine the path to to_dir (in pub_root) from nb_root."""
+        """Determine the path to pub_root/title/<to_dir> .
+        
+        If start==None then assume the path is needed fron nb_root,
+        otherwise caluclate the path from start.
+        
+        Args:
+            to_dir: target directory.
+            start: start of path or None.
+        """
         
         # A hack since cannot pass self.nb_root as a default arg.
         start = self.nb_root if start is None else start
@@ -333,7 +280,7 @@ class Publication(object):
         return os.path.relpath(self.pub_root + '/' + self.title + '/' + to_dir, start=start)
 
     def safely_remove_file(self, file):
-        """Safely attempt to delete file.
+        """Attempt to delete file; capture/notify exceptions as appropriate.
         
         Safely catch exceptions and log appropriate messages 
         based on outcome.
