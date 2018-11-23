@@ -1,107 +1,41 @@
-import os.path
-from shutil import rmtree
-from kallysto.publication import Publication
+import os
 import pytest
 
-# -- Test Fixtures ------------------------------------------------------------
+from kallysto.publication import Publication
+
+def test_publication_is_a_publication(pub_with_defs):
+    assert type(pub_with_defs) == Publication
+    
+def test_publication_data_store(pub_with_defs): 
+    """Check for the main data store directories and files."""
+    
+    # Check the title directory exists
+    assert os.path.isdir(pub_with_defs.pub_root) is True
+    
+    # Check each of the main data store dirs exist.
+    for name in ['data', 'figs', 'defs', 'tex', 'logs']:
+        dir_path = pub_with_defs.path_to(getattr(pub_with_defs, '{}_path'.format(name)))
+        assert os.path.isdir(dir_path) is True
+        
+    # Check the log file exists.
+    logs_file = pub_with_defs.path_to(pub_with_defs.logs_path + '/' + pub_with_defs.logs_filename)
+    assert os.path.isfile(logs_file) is True
+    
+def test_write_defs(pub_with_defs, pub_no_defs):
+    """Test the write_defs behavior.
+    
+    Make sure that a _definitions.tex is created when write_defs
+    is True and that there is no file created when write_defs is False."""
+    
+    assert pub_with_defs.write_defs is True
+    
+    with_defs_file = pub_with_defs.path_to(
+        pub_with_defs.defs_path + '/' + pub_with_defs.defs_filename)
+    assert os.path.isfile(with_defs_file) is True
 
 
-@pytest.fixture(scope="module")
-def interim_config():
-    return {'notebook': 'interim_nb',
-            'title': 'interim_report',
-            'root_path': 'tests/sandbox/testpub/'}
-
-
-@pytest.fixture(scope="module")
-def final_config():
-    return {'notebook': 'final_nb',
-            'title': 'final_report',
-            'root_path': 'tests/sandbox/testpub/'}
-
-
-@pytest.fixture(scope="module")
-def interim_config_without_defs():
-    return {'notebook': 'interim_nb',
-            'title': 'interim_report',
-            'root_path': 'tests/sandbox/testpub/',
-            'write_defs': False}
-
-
-@pytest.fixture(scope="module")
-def final_config_without_defs():
-    return {'notebook': 'final_nb',
-            'title': 'final_report',
-            'root_path': 'tests/sandbox/testpub/',
-            'write_defs': False}
-
-
-@pytest.fixture(scope="module")
-def interim_config_with_defs():
-    return {'notebook': 'interim_nb',
-            'title': 'interim_report',
-            'root_path': 'tests/sandbox/testpub/',
-            'write_defs': True}
-
-
-@pytest.fixture(scope="module")
-def final_config_with_defs():
-    return {'notebook': 'final_nb',
-            'title': 'final_report',
-            'root_path': 'tests/sandbox/testpub/',
-            'write_defs': True}
-
-
-def check_publication_dirs(config):
-
-    rmtree(config['root_path'])  # Start with a blank state.
-
-    pub = Publication(**config)
-
-    assert type(pub) == Publication
-
-    # Check that the root_path exists.
-    assert os.path.isdir(pub.root_path)
-
-    # Check for the standard kallysto dirs.
-    assert os.path.isdir(pub.figs_path)
-    assert os.path.isdir(pub.data_path)
-    assert os.path.isdir(pub.logs_path)
-
-    # Check the defs_file.
-    if not('write_defs' in config):
-        assert os.path.isdir(pub.defs_path)
-        assert os.path.isfile(pub.defs_file)
-    elif config['write_defs']:
-        assert os.path.isdir(pub.defs_path)
-        assert os.path.isfile(pub.defs_file)
-    else:
-        assert os.path.isdir(pub.defs_path) is False
-        assert os.path.isfile(pub.defs_file) is False
-
-    # Check the logs file.
-    assert os.path.isfile(pub.logs_file)
-
-
-def test_interim_pub(interim_config):
-    check_publication_dirs(interim_config)
-
-
-def test_final_pub(final_config):
-    check_publication_dirs(final_config)
-
-
-def test_interim_pub_with_defs(interim_config_without_defs):
-    check_publication_dirs(interim_config_without_defs)
-
-
-def test_final_pub_with_defs(final_config_without_defs):
-    check_publication_dirs(final_config_without_defs)
-
-
-def test_interim_pub_without_defs(interim_config_without_defs):
-    check_publication_dirs(interim_config_without_defs)
-
-
-def test_final_pub_without_defs(final_config_without_defs):
-    check_publication_dirs(final_config_without_defs)
+    assert pub_no_defs.write_defs is False
+    
+    no_defs_file = pub_no_defs.path_to(
+        pub_no_defs.defs_path + '/' + pub_no_defs.defs_filename)
+    assert os.path.isfile(no_defs_file) is False

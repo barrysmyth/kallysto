@@ -1,100 +1,125 @@
-import os.path
+import os
+import pytest
+import pandas as pd
+from matplotlib.pylab import plt
+from matplotlib.figure import Figure as Fig
 
 from kallysto.publication import Publication
 from kallysto.export import Export, Value, Table, Figure
-import pytest
-import pandas as pd
-import matplotlib.pylab as plt
-import matplotlib.figure as figure
-from os.path import isfile
 
 
-import numpy as np
+    
+# Test the export objects.
+def test_numeric_value(numeric_value):
+    assert type(numeric_value) == Value
+    assert numeric_value.name == 'NumericValue'
+    assert numeric_value.value == 1
+    
+def test_string_value(string_value):
+    assert string_value.name == 'StringValue'
+    assert string_value.value == "string"
+    
+def test_table(table, df):
+    assert type(table) == Table
+    assert table.name == 'Table'
+    assert table.data.equals(df) is True
+    assert table.caption == "A table caption."
+    
+def test_figure(figure, df):
+    assert type(figure) == Figure
+    assert type(figure.image) == Fig
+    assert figure.name == 'Figure'
+    assert figure.data.equals(df) is True
+    assert figure.caption == "A figure caption."
 
-# -- Test Fixtures ------------------------------------------------------------
+    
+# Test the transfers for each of the export.
 
+def test_numeric_value_export(numeric_value, pub_for_numeric_value):
+    
+    numeric_value > pub_for_numeric_value
+    
+    value_file = pub_for_numeric_value.path_to(
+        pub_for_numeric_value.data_path + '/' + numeric_value.data_file)
+    
+    # Test the file exists.
+    assert os.path.isfile(value_file)
 
-@pytest.fixture(scope="module")
-def pub_path():
-    return 'tests/sandbox/pub/'  # The path to the publication root.
-
-
-@pytest.fixture(scope="module")
-def draft(pub_path):
-    return Publication(notebook='draft_nb',  # A test publictaion (draft_nb).
-                       title='draft_report',
-                       root_path=pub_path)
-
-
-@pytest.fixture(scope="module")
-def final(pub_path):
-    return Publication(notebook='final_nb',  # A test publictaion (final_nb).
-                       title='final_report',
-                       root_path=pub_path)
-
-
-@pytest.fixture(scope="module")
-def value1():
-    return Value(name='v1', value=1)
-
-
-@pytest.fixture(scope="module")
-def string1():
-    return Value(name='s1', value="string 1")
-
-
-@pytest.fixture(scope="module")
-def df():
-    return pd.DataFrame([(1, 100), (2, 120), (3, 110), (4, 200)],
-                        columns=['Qtr', 'Sales'])
-
-
-@pytest.fixture(scope="module")
-def table1(df):
-
-    return Export.table('t1', df, caption="caption 1")
+    # Test the contents match the value data.
+    with open(value_file,"r") as vf:
+        assert str(numeric_value.value) == vf.read()
 
 
-@pytest.fixture(scope="module")
-def figure1(df):
-    return Export.figure('f1',
-                         image=df.plot().get_figure(),
-                         data=df,
-                         caption='caption 1')
+def test_string_value_export(string_value, pub_for_string_value):
+    
+    string_value > pub_for_string_value
+    
+    value_file = pub_for_string_value.path_to(
+        pub_for_string_value.data_path + '/' + string_value.data_file)
+    
+    # Test the file exists.
+    assert os.path.isfile(value_file)
 
+    # Test the contents match the value data.
+    with open(value_file,"r") as vf:
+        assert string_value.value == vf.read()
+        
 
-# -- Test Basic Exports --------------------------------------------------
+def test_table_export(table, pub_for_table):
+    
+    table > pub_for_table
+    
+    data_file = pub_for_table.path_to(
+        pub_for_table.data_path + '/' + table.data_file)
+    
+    # Test the file exists.
+    assert os.path.isfile(data_file)
 
+    # Test the contents match the table data; the first col is the index.
+    df = pd.read_csv(data_file, index_col=0)
+    assert table.data.equals(df)
 
-def test_value1(value1):
-    assert type(value1) == Value
-    assert value1.name == 'v1'
-    assert value1.value == 1
+    # Generate a table defintion string based on the formatted for pub_for_table.
+    table_def = ''.join(pub_for_table.formatter.table(table, pub_for_table).split('\n')[6:])
+                
+    # Read in the defintion from the definitions file of pub_for_table
+    # and compare to the newly generated defintion string; exclude the
+    # meta data, which contains id and timing information.
+    defs_file = pub_for_table.path_to(
+        pub_for_table.defs_path + '/' + pub_for_table.defs_filename)
+    with open(defs_file,"r") as df:
+        table_def_from_file = ''.join(df.read().split('\n')[6:])
+        assert table_def == table_def_from_file
+        
+    
+def test_figure_export(figure, pub_for_figure):
+    
+    figure > pub_for_figure
+    
+    data_file = pub_for_figure.path_to(
+        pub_for_figure.data_path + '/' + figure.data_file)
+    
+    # Test the file exists.
+    assert os.path.isfile(data_file)
 
+    # Test the contents match the table data; the first col is the index.
+    df = pd.read_csv(data_file, index_col=0)
+    assert figure.data.equals(df)
 
-def test_string1(string1):
-    assert type(string1) == Value
-    assert string1.name == 's1'
-    assert string1.value == "string 1"
-
-
-def test_table1(table1, df):
-
-    assert type(table1) == Table
-    assert table1.name == "t1"
-    assert table1.caption == "caption 1"
-    assert table1.data.equals(df) is True
-    assert table1.data_file == "t1.csv"
-
-
-def test_figure1(figure1, df):
-
-    assert type(figure1) == Figure
-    assert figure1.name == 'f1'
-    assert figure1.data.equals(df) is True
-    assert figure1.caption == 'caption 1'
-    assert type(figure1.image) == figure.Figure
-
-
-def test_value1_export_to_draft(draft, value1, pub_path):
-    value1 > draft
+    # Since the images are exported as PDFs, it's messy to test.
+    # Instead, check that image file exists.
+    image_file = pub_for_figure.path_to(
+        pub_for_figure.figs_path + '/' + figure.image_file)
+    assert os.path.isfile(image_file) is True
+    
+    # Generate a table defintion string based on the formatted for pub_for_figure.
+    figure_def = ''.join(pub_for_figure.formatter.figure(figure, pub_for_figure).split('\n')[6:])
+                
+    # Read in the defintion from the definitions file of pub_for_figure
+    # and compare to the newly generated defintion string; exclude the
+    # meta data, which contains id and timing information.
+    defs_file = pub_for_figure.path_to(
+        pub_for_figure.defs_path + '/' + pub_for_figure.defs_filename)
+    with open(defs_file,"r") as df:
+        figure_def_from_file = ''.join(df.read().split('\n')[6:])
+        assert figure_def == figure_def_from_file
