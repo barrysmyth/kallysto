@@ -77,8 +77,6 @@ class Publication(object):
             "Kallysto:{}:{}: ".format(title, notebook))
         self.display_logger.setLevel(logging.INFO)
 
-#         self.exports = []  # Retain a record of exports to a given publciation.
-
         self.formatter = formatter
 
         self.write_defs = write_defs
@@ -135,8 +133,7 @@ class Publication(object):
         # Delete defs, figs, and data dirs, and their contents.
         [self.safely_remove_dir(self.path_to(folder))
          for folder in [self.defs_path, self.figs_path, self.data_path]]
-        
-        
+
         
     def setup_data_store(self):
         """Setup the Kallysto directories and files needed for the data store.
@@ -159,23 +156,20 @@ class Publication(object):
         [os.makedirs(self.path_to(folder), exist_ok=True)
          for folder in [self.defs_path, self.figs_path, self.data_path, self.logs_path]]
         
-        # Create a blank definitions file, if needed.
+        # Create a blank definitions file, but only if needed.
         if self.write_defs:
             defs_file = self.path_to(self.defs_path + '/' + self.defs_filename)
             self.display_logger.info('Creating %s if it does not exist.', defs_file)
             open(defs_file, 'a').close()
 
-        # Create the Kallysto tex folder, and kallysto.tex (includes file) if needed.
+        # Create the Kallysto tex folder.
         if self.formatter == Latex:
             os.makedirs(self.path_to(self.tex_path), exist_ok=True)
-            
-#             kallysto_file = self.path_to(self.tex_path + '/' + self.kallysto_filename)
-#             open(kallysto_file, 'a').close()
         
         # Create the log.
         log_file = self.path_to(self.logs_path + '/' + self.logs_filename)
         open(log_file, 'a').close()
-        
+
 
     def setup_logging(self):
         """Setup Kallysto's logging.
@@ -254,9 +248,6 @@ class Publication(object):
 
         # Log the export.
         self.audit_logger.info(export.log_str)
-
-        # Add the export to exports.
-#         self.exports.append(export)
 
         return export
     
