@@ -32,153 +32,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-""" Kallysto Export Types.
 
-Each type of export represents a data structure to capture the key data
-associated with the export type, whether a value, a figure or a table, for
-example, so that the export may be 'exported' to a specific publication at some
-future time. Typically this 'export' process will involve creating a definition
-of the exported item (such as a latex defintion), which can be imported into a
-publication, and a set of associated files, such as images and/or datafiles.
-
-The Export class is the base class and provides a core set of functionality
-shared by its subclasses (Value, table, Figure), which define the different
-types of exports. For example, Export defines key attributes shared among the
-different export types including, a unique id (uid), creation date (created),
-unique export name (name) the export definition string (def_str), such as a
-latex definition string, the log string (log_str) to be used in the Kallysto
-log.
-
-The Export class also manages a dict of created exports and is responsible for
-ensuring that exports with duplicate names are managed correctly (either avoided
-or overwritten).
-
-    e.g. Export.list() -> returns a dict of created exports.
-         Figure.list() -> returns a dict of created figures etc.
-
-The Export class also includes functionality to allow all exports to be
-exported to a given publication in bulk.
-
-    e.g. Export.to(pub) -> exports all exports to pub.
-         Table.to(pub) -> exports all tables to pub etc.
-
-Currently there are three such subclasses -- Value, Table, and Figure -- and
-each is associated with a particular set of attributes. Typically each export
-is associated with a definition (e.g. a Latex \newcommand) so that the export
-can be included in some publication source. Some exports (Table, Figure) are
-also associated with secondary files such as images and data.
-
-A Value export is simply a named Python (atomic) value such as a number or
-string. In fact any Python expression that can be rendered as a string can
-be exported as a value.
-
-A Table export is a Pandas dataframe. In addition to a suitable export
-defintion (e.g. a latex definition) a Table export is also associated with the
-actual data which will be saved as a csv when the export is exported to a
-publication. A Table export can also have a caption.
-
-A Figure export is an image (e.g. a matpolotlib image). In addition to the
-defintion (e.g. a Latex figure defintion) a Figure export is associated with
-an image file (pdf/png) and a corresponding data file, saved as a csv upon
-export to a publication, plus a caption.
-
-Example Usage:
-
-The follow doctests create a sample publication and then create and export
-example value, table, and figure items to this publication.
-
->>> from kallysto.export import Export, Figure, Value, Table
->>> from kallysto.publication import Publication
->>> import pandas as pd
->>> import matplotlib.pylab as plt
->>> import numpy as np
-
-# Create a new publication as an export target (final_report). It is assumed
-# this code is run in a notebook (notebook_1) and that the final_report is
-# located at 'tests/sandbox/' relative to the notebook.
->>> final = Publication('notebook_1', 'final_report', \
-root_path='tests/sandbox/', overwrite=True, delete_log=True)
-
-# A sample dataframe of quarterly sales figures.
->>> df = pd.DataFrame([(1, 100),(2, 120),(3, 110),(4,200)],\
-columns=['Qtr', 'Sales'])
->>> df
-   Qtr  Sales
-0    1    100
-1    2    120
-2    3    110
-3    4    200
-
-# An example Value export for the mean sales calculation.
->>> mean_sales = Export.value('valueMeanSales', df['Sales'].mean())
->>> mean_sales
-Value('valueMeanSales', 132.5)
->>> mean_sales.value
-132.5
->>> mean_sales.name
-'valueMeanSales'
-
-# Creating an export with an existing name generates a warning.
->>> mean_sales = Export.value('valueMeanSales', df['Sales'].mean())
->>> mean_sales is Value.list()['valueMeanSales']
-True
->>> mean_sales = Export.value('valueMeanSales', df['Sales'].mean(), overwrite=True)
-
->>> mean_sales > final
-Value('valueMeanSales', 132.5)
-
-# An example Table export for the dataframe.
->>> sales_table = Export.table('tableQuarterlySales', df, \
-caption="Quartery sales table.")
->>> sales_table > final
-Table('tableQuarterlySales',    Qtr  Sales
-0    1    100
-1    2    120
-2    3    110
-3    4    200, 'Quartery sales table.')
-
-# An example Figure export of sales vs quarter.
->>> sales_fig = Export.figure(\
-        'figQuarterlySales', image=df.plot().get_figure(), data=df,\
-        caption='Quarterly sales data.')
->>> sales_fig > final  # doctest:+ELLIPSIS
-Figure('figQuarterlySales', <matplotlib.figure.Figure ...
-...
-...
-
-# List all of the export objects created.
->>> Export.list()  # doctest:+ELLIPSIS
-OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5)), \
-('tableQuarterlySales', Table('tableQuarterlySales',    Qtr  Sales
-..., 'Quartery sales table.')), ('figQuarterlySales', \
-Figure('figQuarterlySales', <matplotlib.figure.Figure object at ...
-...
-...
-
-# Or we can get a list by type.
->>> Value.list()  # doctest:+ELLIPSIS
-OrderedDict([('valueMeanSales', Value('valueMeanSales', 132.5))])
-
->>> Table.list()  # doctest:+ELLIPSIS
-OrderedDict([('tableQuarterlySales', Table('tableQuarterlySales',...
-...
-
->>> Figure.list()  # doctest:+ELLIPSIS
-OrderedDict([('figQuarterlySales', Figure('figQuarterlySales', <matplotlib...
-...
-
-# Bulk export all of the exports.
->>> Export.to(final)
-['valueMeanSales', 'tableQuarterlySales', 'figQuarterlySales']
-
-# It is also possible to bulk exports based on export type.
->>> Value.to(final)
-['valueMeanSales']
->>> Table.to(final)
-['tableQuarterlySales']
->>> Figure.to(final)
-['figQuarterlySales']
-"""
 
 import logging
 import os
@@ -191,19 +45,16 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-# Some basic logging to display.
-# display_logger = logging.getLogger("Kallysto")
-# display_logger.setLevel(logging.INFO)
-
 # -- Export base class ---------------------------------------------------
 
 
 class Export():
     """The base export class.
 
-    An export is a piece of data that can be published to a publication.
-    Each export is associated with a unique id, a name and a creation date.
-    Exports are stored in the classvar _exports dict, keyed on export name.
+    An export is some item of data that can be exported to a publication
+    and this base class is responsible for providing a simple constructor
+    API and defining meta-data (id, name, creation date) that is common to
+    all export types. 
 
     Creating an export with a name used by another export generates a warning
     and will fail, unless overwrite is True. Consequently we need a way to
@@ -220,53 +71,8 @@ class Export():
     """
 
     display_logger = logging.getLogger("Kallysto")
-    _exports = OrderedDict()
-# TODO: Need tocheck this _exports and relationship to exports in Publication.
-# When creating a new Pub with override==True, _exports should be empty.
-
-# -- Export, public API -----------------------------------------
-
-    @classmethod
-    def value(cls, name, value, overwrite=True):
-        """Create Value export with a name check."""
-        existing = Export.name_exists(name, overwrite, cls.list())
-        return existing if existing else Value(name, value)
-
-    @classmethod
-    def table(cls, name, data, caption, overwrite=True):
-        """Create Table export with a name check."""
-        existing = Export.name_exists(name, overwrite, cls.list())
-        return existing if existing else Table(name, data, caption)
-
-    @classmethod
-    def figure(cls, name, image, data, caption, text_width=1, 
-               format='pdf', overwrite=True):
-        """Create Figure export with a name check."""
-        existing = Export.name_exists(name, overwrite, cls.list())
-        return existing if existing else Figure(
-            name, image, data, caption, text_width, format)
-
-    @classmethod
-    def list(cls):
-        return cls._exports
-
-# -- Util ---------------------------------------------------------
-
-    @staticmethod
-    def name_exists(name, overwrite, exports):
-        """ If the name exists return the corresponding export."""
-
-        if (not overwrite) & (name in exports):
-            Export.display_logger.warn(
-                ("Kallysto: "
-                 "Export with name {} already in use for {!r}.\n"
-                 "Use overwrite=True to override.").format(
-                    name, exports[name]))
-
-            return exports[name]
-
-        return False
-
+    
+#     _exports = OrderedDict()
 
 # -- Export creation ---------------------------------------------------------
 
@@ -287,46 +93,65 @@ class Export():
         self.log_str = None
 
         # Add the new export object to the subclass export dict.
-        cls._exports[name] = self
+#         cls._exports[name] = self
+        
+        
+    def __gt__(self, pub):
+        """Export self to publication.
+        
+        This will not be called directly but rather from the
+        corresponding method of one of the export subclasses.
+        """
+        return pub.export(self)
+
+    
+    def save_export_component(self, component, save_method, filepath):
+        """Safely save an export component to the Kallysto data store.
+        
+        Write the export component to file in an appropriate format, 
+        e.g. CSV for data or PDF for images. The component and an 
+        appropriate save method (e.g. to_csv, or savefig) is provided 
+        along with the file name and a check is made to ensure that 
+        the save method is available with the particular component type.
+        
+        Args:
+            component: export component such as data or a fig/image.
+            save_method: a suitable method that can write the data to file.
+            filepath: where to write the data.
+        """
+        
+        # Check that the component has the save method.
+        if hasattr(component, save_method):
+            self.display_logger.info('Saving %s.', filepath)
+            getattr(component, save_method)(filepath)
+            
+        else: 
+            self.display_logger.warning(
+                'Could not generate %s. Missing %s.', image_file_from_nb, save_method)
+
+
 
 # -- Export, Public API --------------------------------------------------
 
-    @classmethod
-    def list(cls):
-        """ Return a list of all exports as a dict keyed on name.
-
-        When called from Export, the dict is generated dynamically from the
-        _export class vars of all subclasses of Export. When called from a
-        subclass the contents of _exports are used directly.
-        """
-
-        # If called from Export then build exports from subclasses' _exports.
-        if cls == Export:
-
-            # Create a combined dict from all the exports
-            all_exports = OrderedDict()
-            for d in [subclass.list() for subclass in cls.__subclasses__()]:
-                for name, export in d.items():
-                    all_exports[name] = export
-
-            return all_exports
-
-        # Else, if called by a subclass just return _exports.
-        else:
-            return cls._exports
+    # The following class methods provide a convenient public API
+    # for Kallysto's main export functions (value, table, figue).
 
     @classmethod
-    def to(cls, publication):
-        """ Export all exports in cls.list() to publication."""
+    def value(cls, name, value, overwrite=True):
+        """Create Value export with a name check."""
+        return Value(name, value)
 
-        for name, export in cls.list().items():
-            export > publication
+    @classmethod
+    def table(cls, name, data, caption, overwrite=True):
+        """Create Table export with a name check."""
+        return Table(name, data, caption)
 
-        return list(cls.list().keys())  # Return export names for convenience.
-
-    def __gt__(self, publication):
-        """Export self to publication."""
-        return publication.export(self)
+    @classmethod
+    def figure(cls, name, image, data, caption, text_width=1, 
+               format='pdf', overwrite=True):
+        """Create Figure export with a name check."""
+        return Figure(name, image, data, caption, text_width, format)
+    
 
 # -- Value ---------------------------------------------------------------
 
@@ -334,17 +159,15 @@ class Export():
 class Value(Export):
     """Export an atomic value (e.g. string/text, int, float etc.)
 
-    A Value  is the simplest type of export, and typically corresponds
-    to a numeric value or string. Each Value export has a name and a
-    corresponding value, which is used to create a new definition for the value
-    which added to the corresponding notebook defintions file. Unlike other
-    exports such as Figure or Table, a Value export is not associated with any
-    secondary files (other than the defintions file).
+    A Value is the simplest type of export, and typically corresponds
+    to a numeric value or string. Unlike other exports such as figures 
+    and tables, a value export is not associated with any secondary
+    data files (other than the Latex defintions file).
 
     Attributes:
         value: the value of the Python expression to be exported.
     """
-    _exports = OrderedDict()  # Dict of exports, keyed on name.
+#     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
     def __init__(self, name, value):
         """
@@ -353,20 +176,12 @@ class Value(Export):
         Args:
           name: the name of the export.
           value: the value of the export.
-          overwrite: If True overwrite existing named export. Otherwise if the
-                     name already exists then and overwrite is False then abort
-                     the Value creation and warn the user.
         """
 
         super().__init__(name, self, self.__class__)
 
-        if (isinstance(value, int)):
-            self.value = "{:,}".format(value)
-        elif (isinstance(value, float)) | (isinstance(value, np.float64)):
-            self.value = "{:,}".format(round(value, 2))
-        else:
-            self.value = value
-       
+        self.value = value
+
 # -- Override repr and str -----------------------------------------------
 
     def __repr__(self):
@@ -382,7 +197,11 @@ class Value(Export):
 # -- Value, Public API ---------------------------------------------------
 
     def __gt__(self, pub):
-        """Export self (Value) to publication."""
+        """Export self (Value) to publication.
+        
+        Generates the log string and call __gt__ in super to initiate
+        the export 'transfer'.
+        """
 
         # Set the definition string using the value formatter.
         self.def_str = pub.formatter.value(self, pub)
@@ -400,10 +219,11 @@ class Value(Export):
                             export=self.__class__.__name__)  # VALUE
 
 
+        # Call the super __gt__ to complete the export transfer 
+        # via Publciation (updating definitions, writing log etc.)
         return super().__gt__(pub)
 
 # -- Table ---------------------------------------------------------------
-
 
 class Table(Export):
     """Export a pandas dataframe as a table with the following components:
@@ -421,7 +241,7 @@ class Table(Export):
         data_file: name of the data_file.
         caption: caption text for the table defintion.
     """
-    _exports = OrderedDict()  # Dict of exports, keyed on name.
+#     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
 # -- Table creation ------------------------------------------------------
 
@@ -431,11 +251,8 @@ class Table(Export):
 
         Args:
           name: name of the export.
-          data: dataframe corresponding to teh table.
+          data: dataframe corresponding to the table.
           caption: table caption.
-          overwrite: If True overwrite existing named export. Otherwise if the
-                     name already exists then and overwrite is False then abort
-                     the Table creation and warn the user.
         """
         super().__init__(name, self, self.__class__)
 
@@ -460,7 +277,12 @@ class Table(Export):
 # -- Table, Public API ---------------------------------------------------
 
     def __gt__(self, pub):
-        """Export self (Table) to publication"""
+        """Export self (Table) to publication
+                
+        This methods is responsible for (a) writing the csv file to hold
+        the table data, (b) generating the log string and (c) calling 
+        __gt__ in super to initiate the export 'transfer'.
+        """
 
         # Set the definition string using the table formatter.
         self.def_str = pub.formatter.table(self, pub)
@@ -488,10 +310,13 @@ class Table(Export):
 
         # Save the data to .csv
         # The data is saved from the nb so needs to use path from nb.
-        if hasattr(self.data, 'to_csv'):
-            self.data.to_csv(data_file_from_nb)
-
+        self.save_export_component(self.data, 'to_csv', data_file_from_nb)
+        
+        # Call the super __gt__ to complete the export transfer 
+        # via Publciation (updating definitions, writing log etc.)
         return super().__gt__(pub)
+    
+    
 
 # -- Figure ---------------------------------------------------------
 
@@ -513,7 +338,7 @@ class Figure(Export):
         caption: caption text for the figure.
         format: the format of the image (e.g. pdf, png)
     """
-    _exports = OrderedDict()  # Dict of exports, keyed on name.
+#     _exports = OrderedDict()  # Dict of exports, keyed on name.
 
 # -- Figure creation -----------------------------------------------------
 
@@ -563,23 +388,25 @@ class Figure(Export):
 # -- Figure, Public API --------------------------------------------------
 
     def __gt__(self, pub):
-        """Export self (Figure) to publication"""
+        """Export self (Figure) to publication.
+                
+        This methods is responsible for (a) writing the csv file to hold
+        the table data, (b) generating the log string and (c) calling 
+        __gt__ in super to initiate the export 'transfer'.
+        """
 
         # Set the definition string using the figure formatter.
         self.def_str = pub.formatter.figure(self, pub)
 
-        
         from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
         notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
         
         from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
         data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
         image_file_from_tex = pub.path_to(pub.figs_path + '/' + self.image_file, start=from_tex)
-
         
         data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
         image_file_from_nb = pub.path_to(pub.figs_path + '/' + self.image_file)
-
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
@@ -595,10 +422,11 @@ class Figure(Export):
         
         # Save the data to .csv
         # The data is saved from the nb so needs to use path from nb.
-        if hasattr(self.data, 'to_csv'):
-            self.data.to_csv(data_file_from_nb)
-            
-        # Save the image.
-        self.image.savefig(image_file_from_nb)
+        self.save_export_component(self.data, 'to_csv', data_file_from_nb)
 
+        # Save the image.
+        self.save_export_component(self.image, 'savefig', image_file_from_nb)
+
+        # Call the super __gt__ to complete the export transfer 
+        # via Publciation (updating definitions, writing log etc.)
         return super().__gt__(pub)
