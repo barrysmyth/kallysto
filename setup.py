@@ -9,7 +9,7 @@ setuptools.setup(
     author_email="barry.smyth@ucd.ie",
 
     description="Export Python data to Latex publications.",
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
 
     packages=setuptools.find_packages(),
 
