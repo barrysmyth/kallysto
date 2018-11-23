@@ -169,8 +169,8 @@ class Publication(object):
         if self.formatter == Latex:
             os.makedirs(self.path_to(self.tex_path), exist_ok=True)
             
-            kallysto_file = self.path_to(self.tex_path + '/' + self.kallysto_filename)
-            open(kallysto_file, 'a').close()
+#             kallysto_file = self.path_to(self.tex_path + '/' + self.kallysto_filename)
+#             open(kallysto_file, 'a').close()
         
         # Create the log.
         log_file = self.path_to(self.logs_path + '/' + self.logs_filename)
@@ -225,6 +225,7 @@ class Publication(object):
         # The  Latex include statment for the current defs file.
         current_include = Latex.include(self)
         
+        # Open kallysto.tex for appending; create new file if necessary.
         with open(kallysto_file, "a+") as kallysto:
             
             kallysto.seek(0)  # return to top of file first.
