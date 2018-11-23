@@ -40,6 +40,7 @@ For example, in the code below, we create a new `Publication(...)` instance in t
 ```python
 import pandas as pd
 from matplotlib.pylab import plt
+from tabulate import tabulate  # Used to display text-based tables.
 
 # The important Kallysto imports.
 from kallysto.publication import Publication
@@ -101,176 +102,37 @@ The example code below reads in a dataset of sales data and then create a datafr
 ```python
 # Load in sample data.
 sales = pd.read_csv('demo/sales_data.csv')
-sales.head()
+print(tabulate(sales.head(), headers="keys"))
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>OrderDate</th>
-      <th>Region</th>
-      <th>Rep</th>
-      <th>Item</th>
-      <th>Units</th>
-      <th>Unit Cost</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>43106</td>
-      <td>East</td>
-      <td>Jones</td>
-      <td>Pencil</td>
-      <td>95</td>
-      <td>1.99</td>
-      <td>189.05</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>43123</td>
-      <td>Central</td>
-      <td>Kivell</td>
-      <td>Binder</td>
-      <td>50</td>
-      <td>19.99</td>
-      <td>999.50</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>43140</td>
-      <td>Central</td>
-      <td>Jardine</td>
-      <td>Pencil</td>
-      <td>36</td>
-      <td>4.99</td>
-      <td>179.64</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>43157</td>
-      <td>Central</td>
-      <td>Gill</td>
-      <td>Pen</td>
-      <td>27</td>
-      <td>19.99</td>
-      <td>539.73</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>43174</td>
-      <td>West</td>
-      <td>Sorvino</td>
-      <td>Pencil</td>
-      <td>56</td>
-      <td>2.99</td>
-      <td>167.44</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
+          OrderDate  Region    Rep      Item      Units    Unit Cost    Total
+    --  -----------  --------  -------  ------  -------  -----------  -------
+     0        43106  East      Jones    Pencil       95         1.99   189.05
+     1        43123  Central   Kivell   Binder       50        19.99   999.5
+     2        43140  Central   Jardine  Pencil       36         4.99   179.64
+     3        43157  Central   Gill     Pen          27        19.99   539.73
+     4        43174  West      Sorvino  Pencil       56         2.99   167.44
 
 
 
 ```python
 # Total sales by representative
 sales_by_rep = sales.groupby('Rep')[['Total']].sum()
-sales_by_rep
+print(tabulate(sales_by_rep, headers="keys"))
 ```
 
-
-
-
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>Total</th>
-    </tr>
-    <tr>
-      <th>Rep</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>Andrews</th>
-      <td>149.25</td>
-    </tr>
-    <tr>
-      <th>Gill</th>
-      <td>539.73</td>
-    </tr>
-    <tr>
-      <th>Howard</th>
-      <td>57.71</td>
-    </tr>
-    <tr>
-      <th>Jardine</th>
-      <td>628.74</td>
-    </tr>
-    <tr>
-      <th>Jones</th>
-      <td>1202.50</td>
-    </tr>
-    <tr>
-      <th>Kivell</th>
-      <td>999.50</td>
-    </tr>
-    <tr>
-      <th>Morgan</th>
-      <td>449.10</td>
-    </tr>
-    <tr>
-      <th>Parent</th>
-      <td>1619.19</td>
-    </tr>
-    <tr>
-      <th>Sorvino</th>
-      <td>167.44</td>
-    </tr>
-    <tr>
-      <th>Thompson</th>
-      <td>63.68</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
+    Rep         Total
+    --------  -------
+    Andrews    149.25
+    Gill       539.73
+    Howard      57.71
+    Jardine    628.74
+    Jones     1202.5
+    Kivell     999.5
+    Morgan     449.1
+    Parent    1619.19
+    Sorvino    167.44
+    Thompson    63.68
 
 
 In the code below, Kallysto exports this dataframe using `Export.table`, providing the dataframe as input, alongwith a Latex defintion name (`SalesByRepTable`), and a caption for the Latex table.
@@ -325,9 +187,9 @@ Notice too how the Latex defintion includes the export id as part of its meta-da
 !tail -n 36 demo/a_report/defs/README.ipynb/_definitions.tex 
 ```
 
-    % Uid: 1542995278.908118
-    % Created: 17:47:58 11/23/18 GMT
-    % Exported: 17:47:58 11/23/18 GMT
+    % Uid: 1543010144.707106
+    % Created: 21:55:44 11/23/18 GMT
+    % Exported: 21:55:44 11/23/18 GMT
     % Title: a_report
     % Notebook: ../../../README.ipynb
     % Data file: ../data/README.ipynb/SalesByRepTable.csv
@@ -423,9 +285,9 @@ The image is stored in `a_report/figs/README.ipynb/` and the dataframe is stored
 ```
 
     
-    % Uid: 1542995279.266965
-    % Created: 17:47:59 11/23/18 GMT
-    % Exported: 17:47:59 11/23/18 GMT
+    % Uid: 1543010145.100916
+    % Created: 21:55:45 11/23/18 GMT
+    % Exported: 21:55:45 11/23/18 GMT
     % Title: a_report
     % Notebook: ../../../README.ipynb
     % Image file: ../figs/README.ipynb/SalesByRepBarChart.pdf
@@ -471,9 +333,9 @@ The Latex definition (from `a_report/defs/README.ipynb/_definitions.tex`) for th
 ```
 
     
-    % Uid: 1542995279.958682
-    % Created: 17:47:59 11/23/18 GMT
-    % Exported: 17:47:59 11/23/18 GMT
+    % Uid: 1543010145.887539
+    % Created: 21:55:45 11/23/18 GMT
+    % Exported: 21:55:45 11/23/18 GMT
     % Title: a_report
     % Notebook: README.ipynb
     \providecommand{\TotalSales}{
@@ -728,5 +590,5 @@ We automatically produce the repo README file from this notebook.
     [NbConvertApp] Making directory README_files
     [NbConvertApp] Making directory README_files
     [NbConvertApp] Making directory README_files
-    [NbConvertApp] Writing 29399 bytes to README.md
+    [NbConvertApp] Writing 28183 bytes to README.md
 
