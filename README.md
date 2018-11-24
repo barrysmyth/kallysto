@@ -1,5 +1,5 @@
 
-# K A L L Y S T O
+# K A L L Y S T O – Easy Python Exports
 
 __About the Document__: _In its original form this document is a Jupyter Notebook (`README.ipynb`), but for convenience it has been automatically converted into the more traditional `README.md`. If you are reading this version then bear in mind that code and output snippets below reflect the contents of Jupyter code/output cells._
 
@@ -63,7 +63,9 @@ Kallysto generates its data store, as per the directory tree shown below, with a
 
 Notice how there are subdirectories named after the exporting notebook (this notebook or `README.ipynb`) inside the various Kallysto subdirectories. This makes it easy  for exports from different notebooks, but to the same publication, to co-exist in the data store.
 
-Kallysto also creates a `logs/` subdirectory, which holds a master log of all exports (`kallysto.log`) for the publication. And, in this example, there is a pre-existing `tex/` directory with the user's Latex content.
+Kallysto also creates a `logs/` subdirectory, which holds a master log of all exports (`kallysto.log`) for the publication. 
+
+In this example, there is a pre-existing `tex/` directory with the user's Latex file (`a_report.tex`). Kallysto adds a special file called `kallysto.tex` to this directory which, as we shall discuss below, makes it easy for the user to include kallysto's exports in their main tex file.
 
 
 ```python
@@ -83,13 +85,11 @@ Kallysto also creates a `logs/` subdirectory, which holds a master log of all ex
     │   ├── logs
     │   │   └── kallysto.log
     │   └── tex
-    │       ├── a_report.pdf
-    │       ├── a_report.png
     │       ├── a_report.tex
     │       └── kallysto.tex
     └── sales_data.csv
     
-    9 directories, 7 files
+    9 directories, 5 files
 
 
 ### Exporting from a Notebook
@@ -97,6 +97,8 @@ Kallysto currently supports three types of exports, _tables_, _figures, and _val
 
 #### Exporting a Table
 The example code below reads in a dataset of sales data and then create a dataframe that aggregates sales totals by sales rep. 
+
+_Note: we display the table below in a text-based format only because it makes it easier to convert this notebook into a markdown file, without the need to include HTML code. The use of tabulate for this purpose has nothing to do with Kallysto._
 
 
 ```python
@@ -168,13 +170,11 @@ Export.table('SalesByRepTable',
     │   ├── logs
     │   │   └── kallysto.log
     │   └── tex
-    │       ├── a_report.pdf
-    │       ├── a_report.png
     │       ├── a_report.tex
     │       └── kallysto.tex
     └── sales_data.csv
     
-    9 directories, 8 files
+    9 directories, 6 files
 
 
 Kallysto also adds a Latex table defintion (shown below) to the definitions file for the notebook (`a_report/defs/README.ipynb/_definitions.tex`), labeling defintion with the export name so that it can be referenced as `\ref{SalesByRepTable}` in the main Latex file. 
@@ -184,12 +184,12 @@ Notice too how the Latex defintion includes the export id as part of its meta-da
 
 ```python
 # The resulting Latex table defintion code.
-!tail -n 36 demo/a_report/defs/README.ipynb/_definitions.tex 
+!tail -n 35 demo/a_report/defs/README.ipynb/_definitions.tex 
 ```
 
-    % Uid: 1543010144.707106
-    % Created: 21:55:44 11/23/18 GMT
-    % Exported: 21:55:44 11/23/18 GMT
+    % Uid: 1543071637.902474
+    % Created: 15:00:37 11/24/18 GMT
+    % Exported: 15:00:37 11/24/18 GMT
     % Title: a_report
     % Notebook: ../../../README.ipynb
     % Data file: ../data/README.ipynb/SalesByRepTable.csv
@@ -246,11 +246,11 @@ Export.figure(
 ![png](README_files/README_20_0.png)
 
 
-The image is stored in `a_report/figs/README.ipynb/` and the dataframe is stored in `a_report/data/README.ipynb/`, as shown below.
+The image is stored in `a_report/figs/README.ipynb/` as `SalesByRepBarChart.pdf` and the dataframe is stored in `a_report/data/README.ipynb/`, as shown below.
 
 
 ```python
-# The updated data store
+# The updated data store, including the new figure PDF and its corresponding data file.
 !tree demo
 ```
 
@@ -269,13 +269,11 @@ The image is stored in `a_report/figs/README.ipynb/` and the dataframe is stored
     │   ├── logs
     │   │   └── kallysto.log
     │   └── tex
-    │       ├── a_report.pdf
-    │       ├── a_report.png
     │       ├── a_report.tex
     │       └── kallysto.tex
     └── sales_data.csv
     
-    9 directories, 10 files
+    9 directories, 8 files
 
 
 
@@ -285,9 +283,9 @@ The image is stored in `a_report/figs/README.ipynb/` and the dataframe is stored
 ```
 
     
-    % Uid: 1543010145.100916
-    % Created: 21:55:45 11/23/18 GMT
-    % Exported: 21:55:45 11/23/18 GMT
+    % Uid: 1543071672.691238
+    % Created: 15:01:12 11/24/18 GMT
+    % Exported: 15:01:12 11/24/18 GMT
     % Title: a_report
     % Notebook: ../../../README.ipynb
     % Image file: ../figs/README.ipynb/SalesByRepBarChart.pdf
@@ -307,9 +305,9 @@ The image is stored in `a_report/figs/README.ipynb/` and the dataframe is stored
 
 
 #### Exporting a Value
-It is also possible to export simple values, such as numbers or strings. This is especially useful when referring to a specific aspectsof a result, perhaps the coordinates of a particular plot point or the mean of a set of values. By exporting a value we can refer to this aspect of the result by the value's export name in our Latex file, thereby minimising the manual changes that may need to be made as the analysis evolves.
+We've left the simplest type of export -- values -- for last. Value exports allow us to export simple forms of data that can be rendered as a string, which makes vaue exports very flexible indeed. 
 
-For example, the code below exports the sum of the sales data from the earlier table as `TotalSales`. Value exports are always exported as strings, thereby accommodating the export of any data-type that can be usefully rendered as a string. This makes value expoerts very flexible and powerful.
+As an example, we might want to compute and discuss the overall sales total in our report. We do this in the code below, naming the value export as `TotalSales`.
 
 
 ```python
@@ -324,27 +322,44 @@ Export.value('TotalSales', sales_by_rep['Total'].sum()) > report
 
 
 
-The Latex definition (from `a_report/defs/README.ipynb/_definitions.tex`) for the figure is shown below, and as before includes meta-data as comments to help link the definition to the log.
+Vale exports are written to the Kallysto data store as simple text files (stored alongside other data components in `) containing just the exported value 
+
+
+```python
+# The updated data store, including the new value export as TotalSales.txt.
+!tree demo
+```
+
+    demo
+    ├── a_report
+    │   ├── data
+    │   │   └── README.ipynb
+    │   │       ├── SalesByRepBarChart.csv
+    │   │       ├── SalesByRepTable.csv
+    │   │       └── TotalSales.txt
+    │   ├── defs
+    │   │   └── README.ipynb
+    │   │       └── _definitions.tex
+    │   ├── figs
+    │   │   └── README.ipynb
+    │   │       └── SalesByRepBarChart.pdf
+    │   ├── logs
+    │   │   └── kallysto.log
+    │   └── tex
+    │       ├── a_report.tex
+    │       └── kallysto.tex
+    └── sales_data.csv
+    
+    9 directories, 9 files
+
+
+The Latex definition (from `a_report/defs/README.ipynb/_definitions.tex`) for the value is shown below, and as before includes meta-data as comments to help link the definition to the log.
 
 
 ```python
 # The updated Latex defintion code for the value export.
 !tail -n 12 demo/a_report/defs/README.ipynb/_definitions.tex
 ```
-
-    
-    % Uid: 1543010145.887539
-    % Created: 21:55:45 11/23/18 GMT
-    % Exported: 21:55:45 11/23/18 GMT
-    % Title: a_report
-    % Notebook: README.ipynb
-    \providecommand{\TotalSales}{
-    dummy}
-    \renewcommand{\TotalSales}{
-    5876.84}
-    
-    
-
 
 ### Importing into Latex
 Now that we have generated our expoerts we need to import them into a Latex document where they can be displayed, referenced, and discussed as needed.
@@ -365,33 +380,6 @@ To make things easier, Kallysto maintains a special file called `kallysto.tex`, 
 !cat demo/a_report/tex/a_report.tex
 ```
 
-    \documentclass[10pt]{article} 
-    
-    \usepackage{booktabs}  % Needed for tables.
-    \usepackage{graphicx}  % Needed for figures.
-    
-    \title{A Report}
-    
-    \date{}
-    
-    \begin{document}
-    
-    \maketitle 
-    
-    \input{kallysto.tex}   % Include Kallysto defs.
-    
-    % The text below makes reference to the three 
-    % exports made from the sample notebook.
-    
-    Table \ref{SalesByRepTable} summarises the sales totals by sales rep and the same data is also shown in Figure \ref{SalesByRepBarChart}, for an overall sales total of \TotalSales. Notice how the table and figure references in this paragraph are also dynamically created using references to the appropriate export names.
-    
-    \SalesByRepTable
-    
-    \SalesByRepBarChart
-    
-    \end{document}
-
-
 The code above shows a minimal Latex document generated using the exports generated above. The exoprt definitions are incorporated by the command, `\input{kallysto.tex}` as shown, which provides access to the table, figure, and value exports via their names (`SalesByRepTable`, `SalesByRepBarChart`, and `TotalSales` respectively. The compiled document is presened below, showing the rendered table and figure, and the value reference within the text.
 
 ### Generating the Publication
@@ -405,73 +393,17 @@ And, just for completeness we can programmatically generate the resulting latex 
 !latexmk -pdf -pdflatex="pdflatex -interaction=batchmode" -f -cd -use-make demo/a_report/tex/a_report.tex && latexmk -c -cd demo/a_report/tex/a_report.tex 
 ```
 
-    Latexmk: This is Latexmk, John Collins, 22 April 2016, version: 4.45.
-    Latexmk: Changing directory to 'demo/a_report/tex/'
-    Latexmk: applying rule 'pdflatex'...
-    Rule 'pdflatex': Rules & subrules not known to be previously run:
-       pdflatex
-    Rule 'pdflatex': The following rules & subrules became out-of-date:
-          'pdflatex'
-    ------------
-    Run number 1 of rule 'pdflatex'
-    ------------
-    ------------
-    Running 'pdflatex -interaction=batchmode  -recorder  "a_report.tex"'
-    ------------
-    This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex)
-     restricted \write18 enabled.
-    entering extended mode
-    Latexmk: References changed.
-    Latexmk: Log file says output to 'a_report.pdf'
-    Latexmk: List of undefined refs and citations:
-      Reference `SalesByRepBarChart' on page 1 undefined on input line 19
-      Reference `SalesByRepTable' on page 1 undefined on input line 19
-    Latexmk: Summary of warnings:
-      Latex failed to resolve 2 reference(s)
-    Latexmk: applying rule 'pdflatex'...
-    Rule 'pdflatex': File changes, etc:
-       Changed files, or newly in use since previous run(s):
-          'a_report.aux'
-    ------------
-    Run number 2 of rule 'pdflatex'
-    ------------
-    ------------
-    Running 'pdflatex -interaction=batchmode  -recorder  "a_report.tex"'
-    ------------
-    This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex)
-     restricted \write18 enabled.
-    entering extended mode
-    Latexmk: Log file says output to 'a_report.pdf'
-    Latexmk: All targets (a_report.pdf) are up-to-date
-    Latexmk: Undoing directory change
-    Latexmk: This is Latexmk, John Collins, 22 April 2016, version: 4.45.
-    Latexmk: Changing directory to 'demo/a_report/tex/'
-    File::Glob::glob() will disappear in perl 5.30. Use File::Glob::bsd_glob() instead. at /Library/TeX/texbin/latexmk line 3274.
-    Latexmk: Undoing directory change
-
-
 
 ```python
 # Convert resulting pdf to png because its easier to display in Jupyter.
 !sips -s format png demo/a_report/tex/a_report.pdf --out demo/a_report/tex/a_report.png
 ```
 
-    /Users/barrysmyth/Dropbox/Documents@MBA2/Code/Python/kallysto/demo/a_report/tex/a_report.pdf
-      /Users/barrysmyth/Dropbox/Documents@MBA2/Code/Python/kallysto/demo/a_report/tex/a_report.png
-
-
 
 ```python
 from IPython.display import Image
 Image(filename=('demo/a_report/tex/a_report.png'))
 ```
-
-
-
-
-![png](README_files/README_34_0.png)
-
-
 
 ### Some time later; just because we can ...
 
@@ -500,17 +432,6 @@ Export.figure(
 Export.value('TotalSales', sales_by_rep['Total'].sum()*1.25) > report
 ```
 
-
-
-
-    Value('TotalSales', 7346.05)
-
-
-
-
-![png](README_files/README_37_1.png)
-
-
 ### Et Voila!
 
 
@@ -521,60 +442,6 @@ Export.value('TotalSales', sales_by_rep['Total'].sum()*1.25) > report
 Image(filename=('demo/a_report/tex/a_report.png'))
 ```
 
-    Latexmk: This is Latexmk, John Collins, 22 April 2016, version: 4.45.
-    Latexmk: Changing directory to 'demo/a_report/tex/'
-    Latexmk: applying rule 'pdflatex'...
-    Rule 'pdflatex': Rules & subrules not known to be previously run:
-       pdflatex
-    Rule 'pdflatex': The following rules & subrules became out-of-date:
-          'pdflatex'
-    ------------
-    Run number 1 of rule 'pdflatex'
-    ------------
-    ------------
-    Running 'pdflatex -interaction=batchmode  -recorder  "a_report.tex"'
-    ------------
-    This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex)
-     restricted \write18 enabled.
-    entering extended mode
-    Latexmk: References changed.
-    Latexmk: Log file says output to 'a_report.pdf'
-    Latexmk: List of undefined refs and citations:
-      Reference `SalesByRepBarChart' on page 1 undefined on input line 19
-      Reference `SalesByRepTable' on page 1 undefined on input line 19
-    Latexmk: Summary of warnings:
-      Latex failed to resolve 2 reference(s)
-    Latexmk: applying rule 'pdflatex'...
-    Rule 'pdflatex': File changes, etc:
-       Changed files, or newly in use since previous run(s):
-          'a_report.aux'
-    ------------
-    Run number 2 of rule 'pdflatex'
-    ------------
-    ------------
-    Running 'pdflatex -interaction=batchmode  -recorder  "a_report.tex"'
-    ------------
-    This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex)
-     restricted \write18 enabled.
-    entering extended mode
-    Latexmk: Log file says output to 'a_report.pdf'
-    Latexmk: All targets (a_report.pdf) are up-to-date
-    Latexmk: Undoing directory change
-    Latexmk: This is Latexmk, John Collins, 22 April 2016, version: 4.45.
-    Latexmk: Changing directory to 'demo/a_report/tex/'
-    File::Glob::glob() will disappear in perl 5.30. Use File::Glob::bsd_glob() instead. at /Library/TeX/texbin/latexmk line 3274.
-    Latexmk: Undoing directory change
-    /Users/barrysmyth/Dropbox/Documents@MBA2/Code/Python/kallysto/demo/a_report/tex/a_report.pdf
-      /Users/barrysmyth/Dropbox/Documents@MBA2/Code/Python/kallysto/demo/a_report/tex/a_report.png
-
-
-
-
-
-![png](README_files/README_39_1.png)
-
-
-
 ## Create README.md
 We automatically produce the repo README file from this notebook.
 
@@ -583,12 +450,3 @@ We automatically produce the repo README file from this notebook.
 # Convert this notebook to markdown so that there is an uptodate README.md for GitHub.
 !jupyter nbconvert --to markdown README.ipynb
 ```
-
-    [NbConvertApp] Converting notebook README.ipynb to markdown
-    [NbConvertApp] Support files will be in README_files/
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Writing 28183 bytes to README.md
-
