@@ -212,17 +212,22 @@ class Value(Export):
 
         from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
         notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
-
+        
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
+        
         data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
 
         # Set the log message.
         self.log_str = ('{log_id},{logged},{title},{notebook},'
-                        '{export}').format(
+                        '{export},{data_path}').format(
                             log_id=self.uid,
                             logged=strftime('%X %x %Z'),
                             title=pub.title,
                             notebook=notebook_from_logs,
-                            export=self.__class__.__name__)  # VALUE
+                            export=self.__class__.__name__,
+                            data_path=data_file_from_tex
+        )
 
         # Save the value to a text file.
         # Note we cannot use `save_export_component` because the

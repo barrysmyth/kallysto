@@ -64,6 +64,7 @@ class Latex():
                '% Exported: {exported}\n'
                '% Title: {title}\n'
                '% Notebook: {notebook}\n'
+               '% Data file: {data_file}\n'
                '\\providecommand{{\{name}}}{{\n'
                'dummy}}\n'
                '\\renewcommand{{\{name}}}{{\n'
@@ -73,11 +74,16 @@ class Latex():
         from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
         
+        # The value data file from tex.
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
+        
         return msg.format(uid=export.uid,
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=pub.notebook,
+                          notebook=notebook_from_defs,
+                          data_file=data_file_from_tex,          
                           name=export.name,
                           value=export.value)
 
