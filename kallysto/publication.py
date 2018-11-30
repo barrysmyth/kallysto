@@ -48,7 +48,7 @@ class Publication(object):
 # -- Init ---------------------------------------------------------------------
 
     def __init__(self, notebook, title,
-                 formatter='latex',
+                 formatter=Latex,
                  write_defs=True,
                  overwrite=False, fresh_start=False,
                  pub_root='../../pubs',  # From notebook to pubs root
@@ -78,7 +78,7 @@ class Publication(object):
             "Kallysto:{}:{}: ".format(title, notebook))
         self.display_logger.setLevel(logging.INFO)
 
-        self.formatter = Latex if formatter=='latex' else Markdown
+        self.formatter = formatter
 
         self.write_defs = write_defs
         
