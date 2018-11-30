@@ -37,7 +37,8 @@
 import logging
 import os
 from shutil import rmtree
-from kallysto.formatter import Latex
+
+from kallysto.formatter import Latex, Markdown
 from kallysto.export import Export
 
 class Publication(object):
@@ -47,7 +48,7 @@ class Publication(object):
 # -- Init ---------------------------------------------------------------------
 
     def __init__(self, notebook, title,
-                 formatter=Latex,
+                 formatter='latex',
                  write_defs=True,
                  overwrite=False, fresh_start=False,
                  pub_root='../../pubs',  # From notebook to pubs root
@@ -77,7 +78,7 @@ class Publication(object):
             "Kallysto:{}:{}: ".format(title, notebook))
         self.display_logger.setLevel(logging.INFO)
 
-        self.formatter = formatter
+        self.formatter = Latex if formatter=='latex' else Markdown
 
         self.write_defs = write_defs
         
@@ -91,8 +92,8 @@ class Publication(object):
         # Key Kallysto data store paths to data, figs, defs, logs, tex components. 
         self.data_path= 'data/' + self.notebook
         self.figs_path = 'figs/' + self.notebook
-        self.defs_path, self.defs_filename = 'defs/' + self.notebook, '_definitions.tex'
-        self.tex_path, self.kallysto_filename  = 'tex', 'kallysto.tex'
+        self.defs_path, self.defs_filename = 'defs/' + self.notebook, self.formatter.defs_filename
+        self.src_path, self.kallysto_filename  = self.formatter.src_path, self.formatter.includes_filename
         self.logs_path, self.logs_filename = 'logs/', 'kallysto.log'
                 
 
@@ -127,7 +128,7 @@ class Publication(object):
             
             self.safely_remove_dir(self.path_to(self.logs_path))
             
-            kallysto_file = self.path_to(self.tex_path + '/' + self.kallysto_filename)
+            kallysto_file = self.path_to(self.src_path + '/' + self.kallysto_filename)
             self.safely_remove_file(kallysto_file)
         
         # Delete defs, figs, and data dirs, and their contents.
@@ -162,9 +163,8 @@ class Publication(object):
             self.display_logger.info('Creating %s if it does not exist.', defs_file)
             open(defs_file, 'a').close()
 
-        # Create the Kallysto tex folder.
-        if self.formatter == Latex:
-            os.makedirs(self.path_to(self.tex_path), exist_ok=True)
+        # Create the Kallysto src folder.
+        os.makedirs(self.path_to(self.src_path), exist_ok=True)
         
         # Create the log.
         log_file = self.path_to(self.logs_path + '/' + self.logs_filename)
@@ -213,11 +213,11 @@ class Publication(object):
         this single file (using `input`).
         """
         
-        # The kallysto.tex file.
-        kallysto_file = self.path_to(self.tex_path + '/' + self.kallysto_filename)
+        # The kallysto includes file.
+        kallysto_file = self.path_to(self.src_path + '/' + self.kallysto_filename)
         
         # The  Latex include statment for the current defs file.
-        current_include = Latex.include(self)
+        current_include = self.formatter.include(self)
         
         # Open kallysto.tex for appending; create new file if necessary.
         with open(kallysto_file, "a+") as kallysto:

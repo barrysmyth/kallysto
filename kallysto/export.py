@@ -39,6 +39,7 @@ import os
 import sys
 from collections import OrderedDict, namedtuple
 
+
 from time import time, strftime
 from datetime import datetime
 
@@ -210,10 +211,10 @@ class Value(Export):
         # Set the definition string using the value formatter.
         self.def_str = pub.formatter.value(self, pub)
 
-        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
+        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.logs_path
         notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
         
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
         data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
         
         data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
@@ -305,10 +306,10 @@ class Table(Export):
         # Set the definition string using the table formatter.
         self.def_str = pub.formatter.table(self, pub)
         
-        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
+        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.logs_path
         notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
         
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
         data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
         
         data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
@@ -416,10 +417,10 @@ class Figure(Export):
         # Set the definition string using the figure formatter.
         self.def_str = pub.formatter.figure(self, pub)
 
-        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.logs_path
+        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.logs_path
         notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
         
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
         data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
         image_file_from_tex = pub.path_to(pub.figs_path + '/' + self.image_file, start=from_tex)
         

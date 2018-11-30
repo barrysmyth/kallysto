@@ -45,10 +45,15 @@ data from the export object or the publication."""
 
 import pandas as pd
 from time import time, strftime
+from tabulate import tabulate
 
 # -- For Latex exports ---------------------------------------------------------
 
-
+class Formatter():
+    
+    def __init__(self):
+        pass
+        
 class Latex():
     """Generate formatted latex definitions for exports.
 
@@ -56,6 +61,11 @@ class Latex():
     use a combination of \providecommand and \renewcommand defs because this
     way we can force latex to use the last defintions to allow for repeat
     exports; it ensures that more recent exports overwrite earlier ones."""
+    
+    src_path = 'tex'                    # The src latex dir
+    includes_filename = 'kallysto.tex'  # The name of the includes file
+    defs_filename = '_definitions.tex'
+
 
     @staticmethod
     def value(export, pub):
@@ -71,11 +81,11 @@ class Latex():
                '{value}}}\n\n')
 
         # The location of the notebook relative to the defintions file.
-        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
+        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
         
         # The value data file from tex.
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
         data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
         
         return msg.format(uid=export.uid,
@@ -107,10 +117,10 @@ class Latex():
                '}}\n\n')
 
         # The location of the notebook relative to the defintions file.
-        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
+        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
         
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
         data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
         
         indented = '\t\t\t'.join(export.data.to_latex().splitlines(True))
@@ -147,13 +157,15 @@ class Latex():
                '}}\n\n')
 
         # The location of the notebook relative to the defintions file.
-        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.tex_path + '/' + pub.defs_path
+        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.defs_path
         notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
 
         # The location of the image (relative to the tex directory).
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.tex_path
-        image_file_from_tex = pub.path_to(pub.figs_path + '/' + export.image_file, start=from_tex)
-        data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
+        image_file_from_tex = pub.path_to(
+            pub.figs_path + '/' + export.image_file, start=from_tex)
+        data_file_from_tex = pub.path_to(
+            pub.data_path + '/' + export.data_file, start=from_tex)
 
         return msg.format(uid=export.uid,
                           created=export.created,
@@ -174,9 +186,127 @@ class Latex():
         # inside the tex dir.
         
         path_to_defs = pub.path_to(pub.defs_path + '/' + pub.defs_filename, 
-                                   start=pub.pub_root + '/' + pub.title + '/' + pub.tex_path)
+                                   start=pub.pub_root + '/' + pub.title + '/' + pub.src_path)
 
         msg = '\\input{{{}}}\n'.format(path_to_defs)
 
         return msg
+
+
+    
+class Markdown():
+    
+    src_path = 'md'                    # The src markdown dir
+    includes_filename = 'kallysto.kmd'  # The name of the includes file
+    defs_filename = '_definitions.kmd'
+
+
+    @staticmethod
+    def value(export, pub):
+        msg = ('% Uid: {uid}\n'
+               '% Created: {created}\n'
+               '% Exported: {exported}\n'
+               '% Title: {title}\n'
+               '% Notebook: {notebook}\n'
+               '% Data file: {data_file}\n'
+               '{{{name}:{value}}}\n\n')
+        
+        # The location of the notebook relative to the defintions file.
+        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.defs_path
+        notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
+        
+        # The value data file from tex.
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
+        data_file_from_tex = pub.path_to(pub.data_path + '/' + export.data_file, start=from_tex)
+        
+        return msg.format(uid=export.uid,
+                          created=export.created,
+                          exported=strftime('%X %x %Z'),
+                          title=pub.title,
+                          notebook=notebook_from_defs,
+                          data_file=data_file_from_tex,          
+                          name=export.name,
+                          value=export.value)
+
+    @staticmethod
+    def table(export, pub):
+        msg = ('% Uid: {uid}\n'
+               '% Created: {created}\n'
+               '% Exported: {exported}\n'
+               '% Title: {title}\n'
+               '% Notebook: {notebook}\n'
+               '% Data file: {data_file}\n'
+               '{{{name}:{definition}}}\n\n')
+
+        # The location of the notebook relative to the defintions file.
+        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.defs_path
+        notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
+        
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
+        data_file_from_tex = pub.path_to(
+            pub.data_path + '/' + export.data_file, start=from_tex)
+                
+                          
+        # For the table definition we use tabulate to produce a simple
+        # ascii based table which befores the defintion.
+        def_str = tabulate(export.data, headers='keys', tablefmt='pipe')
+        
+        return msg.format(uid=export.uid,
+                          created=export.created,
+                          exported=strftime('%X %x %Z'),
+                          title=pub.title,
+                          notebook=notebook_from_defs,
+                          data_file=data_file_from_tex,
+                          name=export.name,
+                          definition=def_str)
+
+    @staticmethod
+    def figure(export, pub):
+        msg = ('% Uid: {uid}\n'
+               '% Created: {created}\n'
+               '% Exported: {exported}\n'
+               '% Title: {title}\n'
+               '% Notebook: {notebook}\n'
+               '% Image file: {image_file}\n'
+               '% Data file: {data_file}\n'
+               '{{{name}:{definition}}}\n\n')
+
+        # The location of the notebook relative to the defintions file.
+        from_defs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.defs_path
+        notebook_from_defs = pub.path_to(pub.notebook, start=from_defs)
+
+        # The location of the image (relative to the tex directory).
+        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
+        image_file_from_tex = pub.path_to(
+            pub.figs_path + '/' + export.image_file, start=from_tex)
+        data_file_from_tex = pub.path_to(
+            pub.data_path + '/' + export.data_file, start=from_tex)
+
+        def_str = '![{}]({} "{}")'.format(
+            export.name, image_file_from_tex, export.caption)
+        
+        return msg.format(uid=export.uid,
+                          created=export.created,
+                          exported=strftime('%X %x %Z'),
+                          title=pub.title,
+                          notebook=notebook_from_defs,
+                          data_file=data_file_from_tex,
+                          image_file=image_file_from_tex,
+                          name=export.name,
+                          definition=def_str)
+
+
+    @staticmethod
+    def include(pub):
+
+        # The path to the defintiions file from the kallysto.tex file 
+        # inside the tex dir.
+        
+        path_to_defs = pub.path_to(pub.defs_path + '/' + pub.defs_filename, 
+                                   start=pub.pub_root + '/' + pub.title + '/' + pub.src_path)
+
+        msg = '{}'.format(path_to_defs)
+
+        return msg
+
 
