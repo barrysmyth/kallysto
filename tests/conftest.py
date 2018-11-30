@@ -8,7 +8,7 @@ from shutil import rmtree
 
 import pandas as pd
 from matplotlib.pylab import plt
-
+    
 from kallysto.publication import Publication
 from kallysto.export import Export, Value, Table, Figure
 
@@ -50,6 +50,21 @@ def pub_for_numeric_value():
             notebook='nb', 
             title='pub_for_numeric_value', 
             pub_root='./tests/pub/', 
+            overwrite=True, fresh_start=True, write_defs=True)
+    
+    yield pub
+    
+    # Teardown the title
+    rmtree(pub.pub_root + '/' + pub.title)
+    
+
+@pytest.fixture(scope="module")
+def markdown_pub_for_numeric_value():
+    pub = Publication(
+            notebook='nb', 
+            title='markdown_pub_for_numeric_value', 
+            pub_root='./tests/pub/',
+            formatter='markdown',
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
@@ -132,4 +147,16 @@ def figure(df):
         caption="A figure caption."
     )
 
-
+@pytest.fixture(scope="module")
+def pub_using_markdown():
+    pub = Publication(
+            notebook='nb', 
+            title='pub_using_markdown', 
+            pub_root='./tests/pub/',
+            formatter='markdown',
+            overwrite=True, fresh_start=True, write_defs=True)
+    
+    yield pub
+    
+    # Teardown the title
+    rmtree(pub.pub_root + '/' + pub.title)

@@ -123,3 +123,19 @@ def test_figure_export(figure, pub_for_figure):
     with open(defs_file,"r") as df:
         figure_def_from_file = ''.join(df.read().split('\n')[6:])
         assert figure_def == figure_def_from_file
+        
+        
+
+def test_numeric_value_export_to_markdown(numeric_value, markdown_pub_for_numeric_value):
+    
+    numeric_value > markdown_pub_for_numeric_value
+    
+    value_file = markdown_pub_for_numeric_value.path_to(
+        markdown_pub_for_numeric_value.data_path + '/' + numeric_value.data_file)
+    
+    # Test the file exists.
+    assert os.path.isfile(value_file)
+
+    # Test the contents match the value data.
+    with open(value_file,"r") as vf:
+        assert str(numeric_value.value) == vf.read()
