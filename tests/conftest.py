@@ -11,6 +11,7 @@ from matplotlib.pylab import plt
     
 from kallysto.publication import Publication
 from kallysto.export import Export, Value, Table, Figure
+from kallysto.formatter import Latex, Markdown
 
 
 @pytest.fixture(scope="module")
@@ -18,26 +19,26 @@ def pub_with_defs():
     pub = Publication(
             notebook='nb', 
             title='pub_with_defs', 
-            pub_root='./tests/pub/', 
+            pub_path='./tests/pub/', 
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
 
 @pytest.fixture(scope="module")
 def pub_no_defs():
     pub = Publication(
             notebook='nb', 
             title='pub_no_defs', 
-            pub_root='./tests/pub/', 
+            pub_path='./tests/pub/', 
             overwrite=True, fresh_start=True, write_defs=False)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
     
 # To make it easier to test the contents of definitions files we 
 # create a number of publications as fixtures so that each one
@@ -49,13 +50,13 @@ def pub_for_numeric_value():
     pub = Publication(
             notebook='nb', 
             title='pub_for_numeric_value', 
-            pub_root='./tests/pub/', 
+            pub_path='./tests/pub/', 
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
     
 
 @pytest.fixture(scope="module")
@@ -63,53 +64,53 @@ def markdown_pub_for_numeric_value():
     pub = Publication(
             notebook='nb', 
             title='markdown_pub_for_numeric_value', 
-            pub_root='./tests/pub/',
-            formatter='markdown',
+            pub_path='./tests/pub/',
+            formatter=Markdown,
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
 
 @pytest.fixture(scope="module")
 def pub_for_string_value():
     pub = Publication(
             notebook='nb', 
             title='pub_for_string_value', 
-            pub_root='./tests/pub/', 
+            pub_path='./tests/pub/', 
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
 
 @pytest.fixture(scope="module")
 def pub_for_table():
     pub = Publication(
             notebook='nb', 
             title='pub_for_table', 
-            pub_root='./tests/pub/', 
+            pub_path='./tests/pub/', 
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
 
 @pytest.fixture(scope="module")
 def pub_for_figure():
     pub = Publication(
             notebook='nb', 
             title='pub_for_figure', 
-            pub_root='./tests/pub/', 
+            pub_path='./tests/pub/', 
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
 
 
 @pytest.fixture(scope="module")
@@ -152,11 +153,11 @@ def pub_using_markdown():
     pub = Publication(
             notebook='nb', 
             title='pub_using_markdown', 
-            pub_root='./tests/pub/',
-            formatter='markdown',
+            pub_path='./tests/pub/',
+            formatter=Markdown,
             overwrite=True, fresh_start=True, write_defs=True)
     
     yield pub
     
     # Teardown the title
-    rmtree(pub.pub_root + '/' + pub.title)
+    rmtree(pub.pub_path + '/' + pub.title)
