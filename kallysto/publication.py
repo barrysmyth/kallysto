@@ -51,7 +51,7 @@ class Publication(object):
                  formatter=Latex,
                  write_defs=True,
                  overwrite=False, fresh_start=False,
-                 pub_root='../../pubs',  # From notebook to pubs root
+                 pub_path='../../pubs/',  # From notebook to pubs root
                 ):
 
         """Create a new link from the current notebook/script to a Kallysto publciation.
@@ -86,16 +86,24 @@ class Publication(object):
         
         # Key Kallyso locations; at various times paths will be needed from/to
         # the nb and pub roots.
-        self.nb_root = os.getcwd() # The location of the current notebook/script.
-        self.pub_root = os.path.abspath(pub_root)
+        self.nb_path = os.getcwd() + '/' # The location of the current notebook/script.
+        self.pub_path = pub_path
         
-        # Key Kallysto data store paths to data, figs, defs, logs, tex components. 
-        self.data_path= 'data/' + self.notebook
-        self.figs_path = 'figs/' + self.notebook
-        self.defs_path, self.defs_filename = 'defs/' + self.notebook, self.formatter.defs_filename
-        self.src_path, self.kallysto_filename  = self.formatter.src_path, self.formatter.includes_filename
-        self.logs_path, self.logs_filename = 'logs/', 'kallysto.log'
-                
+        # Rel paths from calling notebook.
+        self.kallysto_path = self.pub_path + '/' + self.title + '/' + '_kallysto/'
+        
+        # Key Kallysto data store paths and files. 
+        self.data_path = 'data/' + self.notebook + '/'
+        self.figs_path = 'figs/' + self.notebook + '/'
+        self.defs_path = 'defs/' + self.notebook + '/'
+        self.logs_path = 'logs/'
+
+        self.defs_file = self.defs_path + '/' + self.formatter.defs_filename
+        self.logs_file = self.logs_path + '/' + 'kallysto.log'
+        
+        # Publication src path, from the notebook.
+        self.src_path = self.pub_path + '/' + self.title + '/' + self.formatter.src_path + '/'
+        self.includes_file = self.src_path + '/' + self.formatter.includes_filename
 
         # Cleanup the data store as required.
         self.overwrite = overwrite
@@ -112,7 +120,15 @@ class Publication(object):
 
         # Update kallysto.tex include file.
         self.update_kallyso_includes()
+        
 
+    # Generating paths to files within the Kallysto datastore.
+    def data_file(self, filename):
+        return self.data_path + '/' + filename
+
+    def fig_file(self, filename):
+        return self.figs_path + '/' + filename
+    
             
 # -- Init Helpers --------------------------------------------------------
 
@@ -126,14 +142,12 @@ class Publication(object):
         # If fresh_start then delete log dir amd kallysto.tex.
         if self.fresh_start:
             
-            self.safely_remove_dir(self.path_to(self.logs_path))
+            self.safely_remove_dir(self.kallysto_path + self.logs_path)
             
-            kallysto_file = self.path_to(self.src_path + '/' + self.kallysto_filename)
-            self.safely_remove_file(kallysto_file)
+            self.safely_remove_file(self.includes_file)
         
-        # Delete defs, figs, and data dirs, and their contents.
-        [self.safely_remove_dir(self.path_to(folder))
-         for folder in [self.defs_path, self.figs_path, self.data_path]]
+        # Delete the Kallysto datastore by removing the root directory.
+        self.safely_remove_dir(self.kallysto_path)
 
         
     def setup_data_store(self):
@@ -144,31 +158,34 @@ class Publication(object):
             'Creating export locations for %s:%s.', self.title, self.notebook)
 
         # Create the pub_root if it doesn't exist.
-        self.display_logger.info('Creating %s.', self.pub_root)
-        os.makedirs(self.pub_root, exist_ok=True)
+        self.display_logger.info('Creating %s.', self.pub_path)
+        os.makedirs(self.pub_path, exist_ok=True)
 
         # Create the target publication, if it doesn't exist;
-        pub_title = self.pub_root + '/' + self.title
+        pub_title = self.pub_path + '/' + self.title
         self.display_logger.info('Creating %s.', pub_title)
         os.makedirs(pub_title, exist_ok=True)
 
-        # Create main kallysto folders (inside the target publication root)
-        # for figs, data, defs, logs
-        [os.makedirs(self.path_to(folder), exist_ok=True)
+        # Create the Kallysto datastore.
+        
+        # Create the kallysto root.
+        os.makedirs(self.kallysto_path, exist_ok=True)
+        
+        # Create the main datastore subdirs.
+        [os.makedirs(self.kallysto_path + folder, exist_ok=True)
          for folder in [self.defs_path, self.figs_path, self.data_path, self.logs_path]]
         
         # Create a blank definitions file, but only if needed.
         if self.write_defs:
-            defs_file = self.path_to(self.defs_path + '/' + self.defs_filename)
+            defs_file = self.kallysto_path + self.defs_file
             self.display_logger.info('Creating %s if it does not exist.', defs_file)
             open(defs_file, 'a').close()
 
         # Create the Kallysto src folder.
-        os.makedirs(self.path_to(self.src_path), exist_ok=True)
+        os.makedirs(self.src_path, exist_ok=True)
         
-        # Create the log.
-        log_file = self.path_to(self.logs_path + '/' + self.logs_filename)
-        open(log_file, 'a').close()
+        # Create the log file.
+        open(self.kallysto_path + self.logs_file, 'a').close()
 
 
     def setup_logging(self):
@@ -187,7 +204,7 @@ class Publication(object):
 
         # Setup audit logger filehandler based on lofs_file.
         audit_logger_handler = logging.FileHandler(
-            self.path_to(self.logs_path + '/' + self.logs_filename))
+            self.kallysto_path + self.logs_file)
         self.audit_logger.addHandler(audit_logger_handler)
 
         # The definitions logger for writing the export defs.
@@ -196,7 +213,7 @@ class Publication(object):
                 "defs_{}:{}".format(self.title, self.notebook))
             self.defs_logger.setLevel(logging.INFO)
             defs_logger_handler = logging.FileHandler(
-                self.path_to(self.defs_path + '/' + self.defs_filename))
+                self.kallysto_path + self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 
 
@@ -213,14 +230,11 @@ class Publication(object):
         this single file (using `input`).
         """
         
-        # The kallysto includes file.
-        kallysto_file = self.path_to(self.src_path + '/' + self.kallysto_filename)
-        
         # The  Latex include statment for the current defs file.
         current_include = self.formatter.include(self)
         
         # Open kallysto.tex for appending; create new file if necessary.
-        with open(kallysto_file, "a+") as kallysto:
+        with open(self.includes_file, "a+") as kallysto:
             
             kallysto.seek(0)  # return to top of file first.
             
@@ -251,22 +265,6 @@ class Publication(object):
 
         return export
     
-    
-    def path_to(self, to_dir, start=None):
-        """Determine the path to pub_root/title/<to_dir> .
-        
-        If start==None then assume the path is needed fron nb_root,
-        otherwise caluclate the path from start.
-        
-        Args:
-            to_dir: target directory.
-            start: start of path or None.
-        """
-        
-        # A hack since cannot pass self.nb_root as a default arg.
-        start = self.nb_root if start is None else start
-
-        return os.path.relpath(self.pub_root + '/' + self.title + '/' + to_dir, start=start)
 
     def safely_remove_file(self, file):
         """Attempt to delete file; capture/notify exceptions as appropriate.

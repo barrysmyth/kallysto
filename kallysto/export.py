@@ -73,8 +73,7 @@ class Export():
 
     display_logger = logging.getLogger("Kallysto")
     
-#     _exports = OrderedDict()
-
+    
 # -- Export creation ---------------------------------------------------------
 
     def __init__(self, name, export, cls):
@@ -129,6 +128,32 @@ class Export():
         else: 
             self.display_logger.warning(
                 'Could not generate %s. Missing %s.', image_file_from_nb, save_method)
+
+
+    # The locations used in the log are all relative to the logs_path.
+    def logs_to_notebook(self, pub):
+        return os.path.relpath(
+            pub.nb_path+pub.notebook, start=pub.kallysto_path+pub.logs_path)
+    
+    def logs_to_data_file(self, pub):
+        return os.path.relpath(
+            pub.kallysto_path+pub.data_file(self.data_file), 
+            start=pub.kallysto_path+pub.logs_path)
+
+    def logs_to_fig_file(self, pub):
+        return os.path.relpath(
+            pub.kallysto_path+pub.fig_file(self.image_file), 
+            start=pub.kallysto_path+pub.logs_path)
+
+    
+    def src_to_notebook(self, pub):
+        return os.path.relpath(pub.nb_path+pub.notebook, start=pub.src_path)
+    
+    def src_to_data_file(self, pub, export):
+        return os.path.relpath(pub.kallysto_path+pub.data_file(export.data_file), start=pub.src_path)
+
+    def src_to_fig_file(self, pub, export):
+        return os.path.relpath(pub.kallysto_path+pub.fig_file(export.image_file), start=pub.src_path)
 
 
 
@@ -198,6 +223,19 @@ class Value(Export):
         return "VALUE,{uid},{created},{name},{value}".format(
             uid=self.uid, created=self.created,
             name=self.name, value=self.value)
+    
+    def gen_log_str(self, pub):
+        
+        # Set the log message.
+        return ('{log_id},{logged},{title},{notebook},'
+                        '{export},{data_path}').format(
+                            log_id=self.uid,
+                            logged=strftime('%X %x %Z'),
+                            title=pub.title,
+                            notebook=self.logs_to_notebook(pub),
+                            export=self.__class__.__name__,
+                            data_path=self.logs_to_data_file(pub)
+        )
 
 # -- Value, Public API ---------------------------------------------------
 
@@ -211,31 +249,14 @@ class Value(Export):
         # Set the definition string using the value formatter.
         self.def_str = pub.formatter.value(self, pub)
 
-        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.logs_path
-        notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
-        
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
-        data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
-        
-        data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
-
-        # Set the log message.
-        self.log_str = ('{log_id},{logged},{title},{notebook},'
-                        '{export},{data_path}').format(
-                            log_id=self.uid,
-                            logged=strftime('%X %x %Z'),
-                            title=pub.title,
-                            notebook=notebook_from_logs,
-                            export=self.__class__.__name__,
-                            data_path=data_file_from_tex
-        )
+        self.log_str = self.gen_log_str(pub)
 
         # Save the value to a text file.
         # Note we cannot use `save_export_component` because the
         # data is a string and strings have no attribute to write
         # to a file and it seems unnecessary to wrap values in a new
         # class just to provide this.
-        with open(data_file_from_nb, "w+") as value_file:
+        with open(pub.kallysto_path+pub.data_file(self.data_file), "w+") as value_file:
             value_file.write(str(self.value))
                     
         # Call the super __gt__ to complete the export transfer 
@@ -292,6 +313,22 @@ class Table(Export):
         return "TABLE,{uid},{created},{name},{data_file}".format(
             uid=self.uid, created=self.created,
             name=self.name, data_file=self.data_file)
+    
+    def gen_log_str(self, pub):
+        
+        # Set the log message.
+        return ('{log_id},{logged},{title},{notebook},'
+                        '{export},{data_path}').format(
+            log_id=self.uid,
+            logged=strftime('%X %x %Z'),
+            title=pub.title,
+            notebook=self.logs_to_notebook(pub),
+            export=self.__class__.__name__, # TABLE
+            
+            # The path to the data file.
+            data_path=self.logs_to_data_file(pub)
+        )
+        
 
 # -- Table, Public API ---------------------------------------------------
 
@@ -306,30 +343,12 @@ class Table(Export):
         # Set the definition string using the table formatter.
         self.def_str = pub.formatter.table(self, pub)
         
-        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.logs_path
-        notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
+        # And the log string.
+        self.log_str = self.gen_log_str(pub)
         
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
-        data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
-        
-        data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
-
-        # Set the log message.
-        self.log_str = ('{log_id},{logged},{title},{notebook},'
-                        '{export},{data_path}').format(
-            log_id=self.uid,
-            logged=strftime('%X %x %Z'),
-            title=pub.title,
-            notebook=notebook_from_logs,
-            export=self.__class__.__name__, # TABLE
-            
-            # The path to the data file.
-            data_path=data_file_from_tex,  # path to data from tex.
-        )
-
         # Save the data to .csv
         # The data is saved from the nb so needs to use path from nb.
-        self.save_export_component(self.data, 'to_csv', data_file_from_nb)
+        self.save_export_component(self.data, 'to_csv', pub.kallysto_path+pub.data_file(self.data_file))
         
         # Call the super __gt__ to complete the export transfer 
         # via Publciation (updating definitions, writing log etc.)
@@ -403,6 +422,21 @@ class Figure(Export):
             uid=self.uid, created=self.created,
             name=self.name, image_file=self.image_file,
             data_file=self.data_file)
+    
+    def gen_log_str(self, pub):
+
+        
+        return ('{log_id},{logged},{title},{notebook},'
+                        '{export},{figs_path},{data_path},').format(
+            log_id=self.uid,
+            logged=strftime('%X %x %Z'),
+            title=pub.title,
+            notebook=self.logs_to_notebook(pub),
+            figs_path=self.logs_to_fig_file(pub),
+            data_path=self.logs_to_data_file(pub),
+            export=self.__class__.__name__  # FIGURE
+        )
+        
 
 # -- Figure, Public API --------------------------------------------------
 
@@ -416,35 +450,17 @@ class Figure(Export):
 
         # Set the definition string using the figure formatter.
         self.def_str = pub.formatter.figure(self, pub)
-
-        from_logs = pub.pub_root + '/' + pub.title + '/' + pub.src_path + '/' + pub.logs_path
-        notebook_from_logs = pub.path_to(pub.notebook, start=from_logs)
-        
-        from_tex = pub.pub_root + '/' + pub.title + '/' + pub.src_path
-        data_file_from_tex = pub.path_to(pub.data_path + '/' + self.data_file, start=from_tex)
-        image_file_from_tex = pub.path_to(pub.figs_path + '/' + self.image_file, start=from_tex)
-        
-        data_file_from_nb = pub.path_to(pub.data_path + '/' + self.data_file)
-        image_file_from_nb = pub.path_to(pub.figs_path + '/' + self.image_file)
-
+    
         # Set the log message.
-        self.log_str = ('{log_id},{logged},{title},{notebook},'
-                        '{export},{figs_path},{data_path},').format(
-            log_id=self.uid,
-            logged=strftime('%X %x %Z'),
-            title=pub.title,
-            notebook=notebook_from_logs,
-            figs_path=image_file_from_tex,
-            data_path=data_file_from_tex,
-            export=self.__class__.__name__  # FIGURE
-        )
+        self.log_str = self.gen_log_str(pub)
         
+        # Paths to data/im
         # Save the data to .csv
         # The data is saved from the nb so needs to use path from nb.
-        self.save_export_component(self.data, 'to_csv', data_file_from_nb)
+        self.save_export_component(self.data, 'to_csv', pub.kallysto_path+pub.data_file(self.data_file))
 
         # Save the image.
-        self.save_export_component(self.image, 'savefig', image_file_from_nb)
+        self.save_export_component(self.image, 'savefig', pub.kallysto_path+pub.fig_file(self.image_file))
 
         # Call the super __gt__ to complete the export transfer 
         # via Publciation (updating definitions, writing log etc.)
