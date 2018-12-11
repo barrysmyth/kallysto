@@ -13,7 +13,6 @@ from kallysto.publication import Publication
 from kallysto.export import Export, Value, Table, Figure
 from kallysto.formatter import Latex, Markdown
 
-
 @pytest.fixture(scope="module")
 def pub_with_defs():
     pub = Publication(
