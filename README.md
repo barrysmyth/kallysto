@@ -1,7 +1,7 @@
 
 # K A L L Y S T O – Easy Python Exports
 
-__About the Document__: _In its original form this document is a Jupyter Notebook (`README.ipynb`), but for convenience it has been automatically converted into the more traditional `README.md`. If you are reading this version then bear in mind that code and output snippets below reflect the contents of Jupyter code/output cells._
+__About the Document__: _In its original form this document is a Jupyter Notebook (`README.ipynb`), but for convenience it has been automatically converted into the more traditional `README.md`. If you are reading the `.md` version then bear in mind that code and output snippets below reflect the contents of Jupyter code/output cells._
 
 ## Easy Python Exports
 
@@ -9,16 +9,16 @@ Kallysto is designed to streamline the generation of Python data science publica
 
 Kallysto is designed with Latex and Markdown publications in mind, and makes it easy to reference exports by name from these document types, and to incorporate these named exports into the resulting Latex or Markdown. 
 
-To do this, Kallysto maintains a persistent, file-based, datastore containing three types of export (_figures_, _tables_, and _values_) and their associated meta-data (export id, source of export, date of export etc.). 
+To do this, Kallysto maintains a persistent, file-based, datastore containing exports and their associated meta-data (export id, source of export, date of export etc.). 
 
-Kallysto bridges an important gap in conventional data science workflows. While it has always been possible to script some elements of a workflow (data capture, cleaning, analysis, visualisation), generating a publication or report has typically relied on manual interventions, not just writing the text of the publication but also exporting/importing result assets (data, tables, figures) produced during the course of the project. Because Kallyso now enables the export/import process through code, the publication process can be fully scripted using a whatever scripting approach (Shell, Make, Python, Papermill, etc.) and/or pipelinig framework (Airflow, Luigi, etc.) is preferred. 
+Kallysto bridges an important gap in conventional data science workflows. While it has always been possible to script many workflow elements (data capture, cleaning, analysis, visualisation), generating a publication or report has typically relied on much manual intervention, not just writing the text of the publication but also exporting/importing any result assets (data, tables, figures) produced during the course of the project. Kallyso enables the export/import process through code, so that the publication process can be fully scripted using a some preferred scripting approach (Shell, Make, Python, Papermill, etc.) and/or pipelinig framework (Airflow, Luigi, Pypette, etc.). 
 
-As an added benefit, Kallysto also maintains a detailed export audit trail thereby helping users to verify the provence of results over time.
+As an added benefit, Kallysto also maintains a detailed export audit trail, thereby helping users to verify the provence of results over time.
 
 All of this greatly improves the repeatability, replicability, and reproducibility of data-driven research projects.
 
 ## Installation
-For now install from source and do a local pip install:
+For now, install from source by cloning this repo and using a local `pip install -e`:
 
 ```
 git clone https://github.com/barrysmyth/kallysto
@@ -27,19 +27,16 @@ pip install -e .
 ```
 
 ## Usage
-The following is a summary of how to get started with Kallysto. This document is best viewed as a Jupyter notebook but has been converted to markdown for convenience; the Jupyter notebook (`README.ipynb`) is available in the same directory as the markdown version if that is what you are currently reading. 
+The following is a summary of how to get started with Kallysto. This document shows one example of each type of Kallysto export, describes how they are stored in the Kallysto datastore, and explains how they can be incoporated into a target publication type, whether Latex or Markdown.
 
-This document shows one example of each type of export, describes how they are stored in the Kallysto datastore, and explains how they can be incoporated into a target publication; Latex and Markdown publications are included below.
+In what follows, when we talk about a `Publication` we are referring to some publication project –– a report, article, or presentation, for example. Kallysto assumes that such a project will have a name or `title` and it further assumes that the files for this project will be stored in a directory of the same name. 
 
-In what follows when we talk about a `Publication` we are referring to specific publication project –– a report, article, or presentation, for example. Kallysto assumes that project will have a name or `title` and it further assumes that the files for this project will be stored in a directory of the same name. 
+As we shall explain, when exports are generated Kallysto will use this publication directory as the parent directory of a file-based data store that is used to store and track any exports and their associated meta-data.
 
-As we shall explain, when exports are generated Kallysto will use this publication directory as the root of a file-based data store for the data and meta-data associated with these exports.
-
-We will work through a _live_ use-case, using Kallysto to export data assests to two different types of publication, Latex and Markdown. All of this will happen within a sandbox that we will be created for the purpose of this and deleted afterwards.
-
-
+Below, we will work through a _live_ use-case, using Kallysto to export data assests to two different types of publication, Latex and Markdown. All of this will happen within a _sandbox_ that will be created hold these (temporary publications, and their Kallysto datastores) for the purpose of this walk-through, and then deleted afterwards.
 
 ### Creating Sandbox
+First we begin with a few imports, including the all-important Kallyso imports, and then we setup the temporary sandbox, which is just a directory to store the publications that will be created below.
 
 
 ```python
@@ -69,112 +66,42 @@ os.mkdir('sandbox')  # Create fresh sandbox.
     0 directories, 0 files
 
 
-### Some Sample Sales Data
-In what follows we will demonstrate Kallysto exports using some sample sales data, defined as a dataframe below.
+## Some Sample Sales Data
+In what follows we will demonstrate Kallysto by using some sample sales data, defined as a dataframe below.
 
 _Note: we display the dataframe  in a text-based format only because it makes it easier to convert this notebook into a markdown file, without the need to include HTML code. The use of tabulate for this purpose has nothing to do with Kallysto._
 
 
 ```python
 sales = pd.DataFrame.from_dict(
-    {'OrderDate': {0: 43106, 
-                   1: 43123,
-                   2: 43140,
-                   3: 43157,
-                   4: 43174,
-                   5: 43191,
-                   6: 43208,
-                   7: 43225,
-                   8: 43242,
-                   9: 43259,
-                   10: 43276,
-                   11: 43293,
-                   12: 43310,
-                   13: 43327},
-     'Region': {0: 'East',
-                1: 'Central',
-                2: 'Central',
-                3: 'Central',
-                4: 'West',
-                5: 'East',
-                6: 'Central',
-                7: 'Central',
-                8: 'West',
-                9: 'East',
-                10: 'Central',
-                11: 'East',
-                12: 'East',
-                13: 'East'},
-     'Rep': {0: 'Jones',
-             1: 'Kivell',
-             2: 'Jardine',
-             3: 'Gill',
-             4: 'Sorvino',
-             5: 'Jones',
-             6: 'Andrews',
-             7: 'Jardine',
-             8: 'Thompson',
-             9: 'Jones',
-             10: 'Morgan',
-             11: 'Howard',
-             12: 'Parent',
-             13: 'Jones'},
-     'Item': {0: 'Pencil',
-              1: 'Binder',
-              2: 'Pencil',
-              3: 'Pen',
-              4: 'Pencil',
-              5: 'Binder',
-              6: 'Pencil',
-              7: 'Pencil',
-              8: 'Pencil',
-              9: 'Binder',
-              10: 'Pencil',
-              11: 'Binder',
-              12: 'Binder',
-              13: 'Pencil'},
-     'Units': {0: 95,
-               1: 50,
-               2: 36,
-               3: 27,
-               4: 56,
-               5: 60,
-               6: 75,
-               7: 90,
-               8: 32,
-               9: 60,
-               10: 90,
-               11: 29,
-               12: 81,
-               13: 35},
-     'Unit Cost': {0: 1.99,
-                   1: 19.99,
-                   2: 4.99,
-                   3: 19.99,
-                   4: 2.99,
-                   5: 4.99,
-                   6: 1.99,
-                   7: 4.99,
-                   8: 1.99,
-                   9: 8.99,
-                   10: 4.99,
-                   11: 1.99,
-                   12: 19.99,
-                   13: 4.99},
-     'Total': {0: 189.05,
-               1: 999.5,
-               2: 179.64,
-               3: 539.73,
-               4: 167.44,
-               5: 299.4,
-               6: 149.25,
-               7: 449.1,
-               8: 63.68,
-               9: 539.4,
-               10: 449.1,
-               11: 57.71,
-               12: 1619.19,
-               13: 174.65},
+    
+    {'OrderDate': {0: 43106,1: 43123, 2: 43140, 3: 43157, 4: 43174,
+                   5: 43191, 6: 43208, 7: 43225, 8: 43242, 9: 43259,
+                   10: 43276, 11: 43293, 12: 43310, 13: 43327},
+     
+     'Region': {0: 'East', 1: 'Central', 2: 'Central', 3: 'Central', 4: 'West',
+                5: 'East', 6: 'Central', 7: 'Central', 9: 'East',
+                10: 'Central', 11: 'East', 12: 'East', 13: 'East'},
+     
+     'Rep': {0: 'Jones', 1: 'Kivell', 2: 'Jardine', 3: 'Gill', 4: 'Sorvino',
+             5: 'Jones', 6: 'Andrews', 7: 'Jardine', 8: 'Thompson', 9: 'Jones',
+             10: 'Morgan', 11: 'Howard', 12: 'Parent', 13: 'Jones'},
+     
+     'Item': {0: 'Pencil', 1: 'Binder', 2: 'Pencil', 3: 'Pen', 4: 'Pencil',
+              5: 'Binder', 6: 'Pencil', 7: 'Pencil', 8: 'Pencil', 9: 'Binder',
+              10: 'Pencil', 11: 'Binder', 12: 'Binder', 13: 'Pencil'},
+     
+     'Units': {0: 95, 1: 50, 2: 36, 3: 27, 4: 56,
+               5: 60, 6: 75, 7: 90, 8: 32, 9: 60,
+               10: 90, 11: 29, 12: 81, 13: 35},
+     
+     'Unit Cost': {0: 1.99, 1: 19.99, 2: 4.99, 3: 19.99, 4: 2.99,
+                   5: 4.99, 6: 1.99, 7: 4.99, 8: 1.99, 9: 8.99,
+                   10: 4.99, 11: 1.99, 12: 19.99, 13: 4.99},
+     
+     'Total': {0: 189.05, 1: 999.5, 2: 179.64, 3: 539.73, 4: 167.44,
+               5: 299.4, 6: 149.25, 7: 449.1, 8: 63.68, 9: 539.4,
+               10: 449.1, 11: 57.71, 12: 1619.19, 13: 174.65},
     }
 )
 
@@ -200,7 +127,7 @@ print(tabulate(sales, headers="keys", tablefmt='fancy_grid'))
     ├────┼─────────────┼──────────┼──────────┼────────┼─────────┼─────────────┼─────────┤
     │  7 │       43225 │ Central  │ Jardine  │ Pencil │      90 │        4.99 │  449.1  │
     ├────┼─────────────┼──────────┼──────────┼────────┼─────────┼─────────────┼─────────┤
-    │  8 │       43242 │ West     │ Thompson │ Pencil │      32 │        1.99 │   63.68 │
+    │  8 │       43242 │ nan      │ Thompson │ Pencil │      32 │        1.99 │   63.68 │
     ├────┼─────────────┼──────────┼──────────┼────────┼─────────┼─────────────┼─────────┤
     │  9 │       43259 │ East     │ Jones    │ Binder │      60 │        8.99 │  539.4  │
     ├────┼─────────────┼──────────┼──────────┼────────┼─────────┼─────────────┼─────────┤
@@ -359,9 +286,9 @@ Notice too how the Latex defintion includes the export id as part of its meta-da
 !tail -n 35 sandbox/latex_report/_kallysto/defs/README.ipynb/_definitions.tex 
 ```
 
-    % Uid: 1544535088.997113
-    % Created: 13:31:28 12/11/18 GMT
-    % Exported: 13:31:29 12/11/18 GMT
+    % Uid: 1544536635.945051
+    % Created: 13:57:15 12/11/18 GMT
+    % Exported: 13:57:15 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Data file: ../_kallysto/data/README.ipynb/SalesByRepTable.csv
@@ -456,9 +383,9 @@ The image is stored in `latex_report/figs/README.ipynb/` as `SalesByRepBarChart.
 ```
 
     
-    % Uid: 1544535089.4709601
-    % Created: 13:31:29 12/11/18 GMT
-    % Exported: 13:31:29 12/11/18 GMT
+    % Uid: 1544536638.1019561
+    % Created: 13:57:18 12/11/18 GMT
+    % Exported: 13:57:18 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Image file: ../_kallysto/figs/README.ipynb/SalesByRepBarChart.pdf
@@ -534,9 +461,9 @@ The Latex definition (from `latex_report/defs/README.ipynb/_definitions.tex`) fo
 !tail -n 12 sandbox/latex_report/_kallysto/defs/README.ipynb/_definitions.tex
 ```
 
-    % Uid: 1544535090.548393
-    % Created: 13:31:30 12/11/18 GMT
-    % Exported: 13:31:30 12/11/18 GMT
+    % Uid: 1544536640.17378
+    % Created: 13:57:20 12/11/18 GMT
+    % Exported: 13:57:20 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Data file: ../_kallysto/data/README.ipynb/TotalSales.txt
@@ -1027,12 +954,6 @@ We automatically produce the repo README file from this notebook.
 # Convert this notebook to markdown so that there is an uptodate README.md for GitHub.
 !jupyter nbconvert --to markdown README.ipynb
 ```
-
-    [NbConvertApp] Converting notebook README.ipynb to markdown
-    [NbConvertApp] Support files will be in README_files/
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Writing 32159 bytes to README.md
-
 
 ## Cleanup
 Delete the sandbox.
