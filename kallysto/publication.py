@@ -42,7 +42,20 @@ from kallysto.formatter import Latex, Markdown
 from kallysto.export import Export
 
 class Publication(object):
-    """Managing links from a notebook script to Kallysto publication for exports.
+    """Link a notebook to a publication and its Kallysto export datastore.
+    
+    A Publication instance creates a specific link from a notebook to a target
+    publication and its associated Kallysto datastore. A given notebook can
+    create many different publication links so that exports can be sent to
+    different publications.
+    
+    Each Publication is associated with a type, either Latex or Markdown, which
+    determines how the exports will be defined so that they can be imported
+    available to the publication. For Latex publications, exports are defined
+    as Latex commands in a definitions file, which is then imported into the 
+    main Latex source file. Markdown does not allow for defintions as standard, 
+    instead Kallysto adds a new import syntax to Markdown and provides a simple
+    converter to handle the import process and generate standard Markdown.
     """
 
 # -- Init ---------------------------------------------------------------------
@@ -65,8 +78,11 @@ class Publication(object):
             
             write_defs: create an export definitions file?
 
-            overwrite: overwrite existing data store? (leaves log intact)
-            fresh_start: delete data store and log.
+            overwrite: overwrite existing data store? If true then the existing datastore,
+            which may include exports from other notebooks, is deleted and recreated from
+            scratch.
+            
+            fresh_start: remove Kallysto's includes file.
 
             pub_root: path from notebook to publication root; the publication data 
             store (title) will be created inside the pub_root.
@@ -87,23 +103,25 @@ class Publication(object):
         # Key Kallyso locations; at various times paths will be needed from/to
         # the nb and pub roots.
         self.nb_path = os.getcwd() + '/' # The location of the current notebook/script.
+        self.notebook_file = self.nb_path + self.notebook
+        
         self.pub_path = pub_path
         
         # Rel paths from calling notebook.
         self.kallysto_path = self.pub_path + '/' + self.title + '/' + '_kallysto/'
         
         # Key Kallysto data store paths and files. 
-        self.data_path = 'data/' + self.notebook + '/'
-        self.figs_path = 'figs/' + self.notebook + '/'
-        self.defs_path = 'defs/' + self.notebook + '/'
-        self.logs_path = 'logs/'
+        self.data_path = self.kallysto_path + 'data/' + self.notebook + '/'
+        self.figs_path = self.kallysto_path + 'figs/' + self.notebook + '/'
+        self.defs_path = self.kallysto_path + 'defs/' + self.notebook + '/'
+        self.logs_path = self.kallysto_path + 'logs/'
 
-        self.defs_file = self.defs_path + '/' + self.formatter.defs_filename
-        self.logs_file = self.logs_path + '/' + 'kallysto.log'
+        self.defs_file = self.defs_path + self.formatter.defs_filename
+        self.logs_file = self.logs_path + 'kallysto.log'
         
         # Publication src path, from the notebook.
-        self.src_path = self.pub_path + '/' + self.title + '/' + self.formatter.src_path + '/'
-        self.includes_file = self.src_path + '/' + self.formatter.includes_filename
+        self.src_path = self.pub_path + self.title + '/' + self.formatter.src_path
+        self.includes_file = self.src_path + self.formatter.includes_filename
 
         # Cleanup the data store as required.
         self.overwrite = overwrite
@@ -124,9 +142,11 @@ class Publication(object):
 
     # Generating paths to files within the Kallysto datastore.
     def data_file(self, filename):
+        """Generate the Kallyso datastore path to a data file."""
         return self.data_path + '/' + filename
 
     def fig_file(self, filename):
+        """Generate the Kallyso datastore path to a fig/image file."""
         return self.figs_path + '/' + filename
     
             
@@ -134,24 +154,33 @@ class Publication(object):
 
     def cleanup_data_store(self):
         """Cleanup the Kallysto data store for the current publication.
+        
+        Delete the existing Kallysto datastore, if it exists and remove the
+        log and includes file if required.
         """
 
         self.display_logger.info(
-            'Removing export files for %s:%s', self.title, self.notebook)
+            'Removing datastore for %s:%s', self.title, self.notebook)
 
-        # If fresh_start then delete log dir amd kallysto.tex.
+        # If fresh_start then remove the includes file and the logs file.
         if self.fresh_start:
-            
-            self.safely_remove_dir(self.kallysto_path + self.logs_path)
-            
             self.safely_remove_file(self.includes_file)
+            self.safely_remove_file(self.logs_file)
         
-        # Delete the Kallysto datastore by removing the root directory.
-        self.safely_remove_dir(self.kallysto_path)
+        # Delete the Kallysto folders for the current notebook in the datastore.
+        for folder in [self.data_path, self.figs_path, self.defs_path]:
+            self.safely_remove_dir(folder)
 
         
     def setup_data_store(self):
         """Setup the Kallysto directories and files needed for the data store.
+        
+        The Kallysto data store is rooted by the `_kallysto` directory and
+        includes sub directories for data, defs, figures, and logs.
+        Exports are stored inside data/defs/figs, within a further layer of
+        subdirs based on the name of the exporting notebook. The logs
+        subdir contains a single logs file that logs all exports to the pub
+        from multiple notebooks.
         """
 
         self.display_logger.info(
@@ -165,19 +194,17 @@ class Publication(object):
         pub_title = self.pub_path + '/' + self.title
         self.display_logger.info('Creating %s.', pub_title)
         os.makedirs(pub_title, exist_ok=True)
-
-        # Create the Kallysto datastore.
         
-        # Create the kallysto root.
+        # Create the datastore root.
         os.makedirs(self.kallysto_path, exist_ok=True)
         
         # Create the main datastore subdirs.
-        [os.makedirs(self.kallysto_path + folder, exist_ok=True)
+        [os.makedirs(folder, exist_ok=True)
          for folder in [self.defs_path, self.figs_path, self.data_path, self.logs_path]]
         
         # Create a blank definitions file, but only if needed.
         if self.write_defs:
-            defs_file = self.kallysto_path + self.defs_file
+            defs_file = self.defs_file
             self.display_logger.info('Creating %s if it does not exist.', defs_file)
             open(defs_file, 'a').close()
 
@@ -185,26 +212,19 @@ class Publication(object):
         os.makedirs(self.src_path, exist_ok=True)
         
         # Create the log file.
-        open(self.kallysto_path + self.logs_file, 'a').close()
+        open(self.logs_file, 'a').close()
 
 
     def setup_logging(self):
-        """Setup Kallysto's logging.
+        """Setup Kallysto's various loggers for reporting and logging to file."""
 
-        Kallysto uses three loggers:
-        (1) A display logger for info messages, setup in init;
-        (2) an audit logger to log exports to a central publication log file;
-        (3) a defs logger for writing the export defintions; if needed.
-        """
-
-        # A file-based logger to create an kallysto audit trail.
+        # A file-based logger to create the Kallyso log.
         self.audit_logger = logging.getLogger(
             "audit_{}:{}".format(self.title, self.notebook))
         self.audit_logger.setLevel(logging.INFO)
 
-        # Setup audit logger filehandler based on lofs_file.
-        audit_logger_handler = logging.FileHandler(
-            self.kallysto_path + self.logs_file)
+        # Setup audit logger filehandler based on logs_file.
+        audit_logger_handler = logging.FileHandler(self.logs_file)
         self.audit_logger.addHandler(audit_logger_handler)
 
         # The definitions logger for writing the export defs.
@@ -213,21 +233,17 @@ class Publication(object):
                 "defs_{}:{}".format(self.title, self.notebook))
             self.defs_logger.setLevel(logging.INFO)
             defs_logger_handler = logging.FileHandler(
-                self.kallysto_path + self.defs_file)
+                self.defs_file)
             self.defs_logger.addHandler(defs_logger_handler)
 
-
     def update_kallyso_includes(self):
-        """Add an `\input` statetment for current notebook in kallysto.tex
+        """Update the publication's includes file.
         
-        The kallysto.tex file contains the Latex instructions to include 
-        any of the defintions files that habve been created by notebooks
-        exporting to the target publication. Each exporting notebook will
-        provide one defintions file. 
-    
-        The purpose of this kallysto.tex file is to make it easy for users
-        to include their exports in the main Latex document, by including
-        this single file (using `input`).
+        Each publication has an includes file which assembles all of
+        the defintions files created by exports to the publication. By
+        import this single includes file the target publication can 
+        import all of the various defintions files that have been
+        created by different exporting notebooks.
         """
         
         # The  Latex include statment for the current defs file.
@@ -249,11 +265,10 @@ class Publication(object):
 # -- Publication, Public API ---------------------------------------------
 
     def export(self, export):
-        """Export the definition and log the export.
+        """Write the export the definition and log the export.
         
         Write the export defintion to the appropriate definitions file, if needed,
-        log the export in the kallysto.log, and add the export object to the
-        list of exports made for the publication.
+        log the export in the kallysto.log.
         """
 
         # If write_defs then write definitions file.

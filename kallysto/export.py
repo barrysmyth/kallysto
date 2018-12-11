@@ -44,7 +44,6 @@ from time import time, strftime
 from datetime import datetime
 
 import pandas as pd
-import numpy as np
 
 # -- Export base class ---------------------------------------------------
 
@@ -129,33 +128,12 @@ class Export():
             self.display_logger.warning(
                 'Could not generate %s. Missing %s.', image_file_from_nb, save_method)
 
-
-    # The locations used in the log are all relative to the logs_path.
-    def logs_to_notebook(self, pub):
-        return os.path.relpath(
-            pub.nb_path+pub.notebook, start=pub.kallysto_path+pub.logs_path)
     
-    def logs_to_data_file(self, pub):
-        return os.path.relpath(
-            pub.kallysto_path+pub.data_file(self.data_file), 
-            start=pub.kallysto_path+pub.logs_path)
-
-    def logs_to_fig_file(self, pub):
-        return os.path.relpath(
-            pub.kallysto_path+pub.fig_file(self.image_file), 
-            start=pub.kallysto_path+pub.logs_path)
-
+    def path_to(self, from_loc, to_loc):
+        """Calculate the relative path from from_loc to to_loc."""
+        
+        return os.path.relpath(to_loc, start=from_loc)
     
-    def src_to_notebook(self, pub):
-        return os.path.relpath(pub.nb_path+pub.notebook, start=pub.src_path)
-    
-    def src_to_data_file(self, pub, export):
-        return os.path.relpath(pub.kallysto_path+pub.data_file(export.data_file), start=pub.src_path)
-
-    def src_to_fig_file(self, pub, export):
-        return os.path.relpath(pub.kallysto_path+pub.fig_file(export.image_file), start=pub.src_path)
-
-
 
 # -- Export, Public API --------------------------------------------------
 
@@ -232,9 +210,9 @@ class Value(Export):
                             log_id=self.uid,
                             logged=strftime('%X %x %Z'),
                             title=pub.title,
-                            notebook=self.logs_to_notebook(pub),
+                            notebook=self.path_to(pub.logs_path, pub.notebook_file),
                             export=self.__class__.__name__,
-                            data_path=self.logs_to_data_file(pub)
+                            data_path=self.path_to(pub.logs_path, pub.data_file(self.data_file))
         )
 
 # -- Value, Public API ---------------------------------------------------
@@ -256,7 +234,7 @@ class Value(Export):
         # data is a string and strings have no attribute to write
         # to a file and it seems unnecessary to wrap values in a new
         # class just to provide this.
-        with open(pub.kallysto_path+pub.data_file(self.data_file), "w+") as value_file:
+        with open(pub.data_file(self.data_file), "w+") as value_file:
             value_file.write(str(self.value))
                     
         # Call the super __gt__ to complete the export transfer 
@@ -322,11 +300,13 @@ class Table(Export):
             log_id=self.uid,
             logged=strftime('%X %x %Z'),
             title=pub.title,
-            notebook=self.logs_to_notebook(pub),
+            notebook=self.path_to(pub.logs_path, pub.notebook_file),
+
             export=self.__class__.__name__, # TABLE
             
             # The path to the data file.
-            data_path=self.logs_to_data_file(pub)
+            data_path=self.path_to(pub.logs_path, pub.data_file(self.data_file))
+
         )
         
 
@@ -348,7 +328,7 @@ class Table(Export):
         
         # Save the data to .csv
         # The data is saved from the nb so needs to use path from nb.
-        self.save_export_component(self.data, 'to_csv', pub.kallysto_path+pub.data_file(self.data_file))
+        self.save_export_component(self.data, 'to_csv', pub.data_file(self.data_file))
         
         # Call the super __gt__ to complete the export transfer 
         # via Publciation (updating definitions, writing log etc.)
@@ -431,9 +411,11 @@ class Figure(Export):
             log_id=self.uid,
             logged=strftime('%X %x %Z'),
             title=pub.title,
-            notebook=self.logs_to_notebook(pub),
-            figs_path=self.logs_to_fig_file(pub),
-            data_path=self.logs_to_data_file(pub),
+            notebook=self.path_to(pub.logs_path, pub.notebook_file),
+
+            figs_path=self.path_to(pub.logs_path, pub.fig_file(self.image_file)),
+            data_path=self.path_to(pub.logs_path, pub.data_file(self.data_file)),
+
             export=self.__class__.__name__  # FIGURE
         )
         
@@ -457,10 +439,10 @@ class Figure(Export):
         # Paths to data/im
         # Save the data to .csv
         # The data is saved from the nb so needs to use path from nb.
-        self.save_export_component(self.data, 'to_csv', pub.kallysto_path+pub.data_file(self.data_file))
+        self.save_export_component(self.data, 'to_csv', pub.data_file(self.data_file))
 
         # Save the image.
-        self.save_export_component(self.image, 'savefig', pub.kallysto_path+pub.fig_file(self.image_file))
+        self.save_export_component(self.image, 'savefig', pub.fig_file(self.image_file))
 
         # Call the super __gt__ to complete the export transfer 
         # via Publciation (updating definitions, writing log etc.)

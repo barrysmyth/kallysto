@@ -63,7 +63,7 @@ class Latex():
     way we can force latex to use the last defintions to allow for repeat
     exports; it ensures that more recent exports overwrite earlier ones."""
     
-    src_path = 'tex'                    # The src latex dir
+    src_path = 'tex/'                    # The src latex dir
     includes_filename = 'kallysto.tex'  # The name of the includes file
     defs_filename = '_definitions.tex'
     
@@ -85,8 +85,8 @@ class Latex():
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=export.src_to_notebook(pub),
-                          data_file=export.src_to_data_file(pub, export),          
+                          notebook=export.path_to(pub.src_path, pub.notebook_file),
+                          data_file=export.path_to(pub.src_path, pub.data_file(export.data_file)),       
                           name=export.name,
                           value=export.value)
 
@@ -115,8 +115,8 @@ class Latex():
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=export.src_to_notebook(pub),
-                          data_file=export.src_to_data_file(pub, export),  
+                          notebook=export.path_to(pub.src_path, pub.notebook_file),
+                          data_file=export.path_to(pub.src_path, pub.data_file(export.data_file)), 
                           name=export.name,
                           caption=export.caption,
                           definition=indented)
@@ -146,19 +146,18 @@ class Latex():
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=export.src_to_notebook(pub),
-                          data_file=export.src_to_data_file(pub, export),  
+                          notebook=export.path_to(pub.src_path, pub.notebook_file),
+                          data_file=export.path_to(pub.src_path, pub.data_file(export.data_file)), 
                           name=export.name,
                           text_width=export.text_width,
                           caption=export.caption,
-                          image_file=export.src_to_fig_file(pub, export))
-
+                          image_file=export.path_to(pub.src_path, pub.fig_file(export.image_file)))
 
     @staticmethod
     def include(pub):
         """Generate the includes string for the current notebook's defs file."""
 
-        path_to_defs = os.path.relpath(pub.kallysto_path + pub.defs_file, start=pub.src_path)
+        path_to_defs = os.path.relpath(pub.defs_file, start=pub.src_path)
 
         msg = '\\input{{{}}}\n'.format(path_to_defs)
 
@@ -168,7 +167,7 @@ class Latex():
     
 class Markdown():
     
-    src_path = 'md'                    # The src markdown dir
+    src_path = 'md/'                    # The src markdown dir
     includes_filename = 'kallysto.kmd'  # The name of the includes file
     defs_filename = '_definitions.kmd'
 
@@ -187,8 +186,8 @@ class Markdown():
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=export.src_to_notebook(pub),
-                          data_file=export.src_to_data_file(pub, export),          
+                          notebook=export.path_to(pub.src_path, pub.notebook_file),
+                          data_file=export.path_to(pub.src_path, pub.data_file(export.data_file)),          
                           name=export.name,
                           value=export.value)
 
@@ -210,8 +209,8 @@ class Markdown():
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=export.src_to_notebook(pub),
-                          data_file=export.src_to_data_file(pub, export),   
+                          notebook=export.path_to(pub.src_path, pub.notebook_file),
+                          data_file=export.path_to(pub.src_path, pub.data_file(export.data_file)),   
                           name=export.name,
                           definition=def_str)
 
@@ -227,15 +226,17 @@ class Markdown():
                '{{{name}:{definition}}}\n\n')
 
         def_str = '![{}]({} "{}")'.format(
-            export.name, export.src_to_fig_file(pub, export), export.caption)
+            export.name, 
+            export.path_to(pub.src_path, pub.fig_file(export.image_file)), 
+            export.caption)
         
         return msg.format(uid=export.uid,
                           created=export.created,
                           exported=strftime('%X %x %Z'),
                           title=pub.title,
-                          notebook=export.src_to_notebook(pub),
-                          data_file=export.src_to_data_file(pub, export),   
-                          image_file=export.src_to_fig_file(pub, export),
+                          notebook=export.path_to(pub.src_path, pub.notebook_file),
+                          data_file=export.path_to(pub.src_path, pub.data_file(export.data_file)),
+                          image_file=export.path_to(pub.src_path, pub.fig_file(export.image_file)),
                           name=export.name,
                           definition=def_str)
 
@@ -246,7 +247,7 @@ class Markdown():
         # The path to the defintiions file from the kallysto.tex file 
         # inside the tex dir.
         
-        path_to_defs = os.path.relpath(pub.kallysto_path + pub.defs_file, start=pub.src_path)
+        path_to_defs = os.path.relpath(pub.defs_file, start=pub.src_path)
 
         msg = '{}'.format(path_to_defs)
 
