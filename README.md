@@ -359,9 +359,9 @@ Notice too how the Latex defintion includes the export id as part of its meta-da
 !tail -n 35 sandbox/latex_report/_kallysto/defs/README.ipynb/_definitions.tex 
 ```
 
-    % Uid: 1544533349.8019688
-    % Created: 13:02:29 12/11/18 GMT
-    % Exported: 13:02:29 12/11/18 GMT
+    % Uid: 1544535088.997113
+    % Created: 13:31:28 12/11/18 GMT
+    % Exported: 13:31:29 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Data file: ../_kallysto/data/README.ipynb/SalesByRepTable.csv
@@ -456,9 +456,9 @@ The image is stored in `latex_report/figs/README.ipynb/` as `SalesByRepBarChart.
 ```
 
     
-    % Uid: 1544533350.281478
-    % Created: 13:02:30 12/11/18 GMT
-    % Exported: 13:02:30 12/11/18 GMT
+    % Uid: 1544535089.4709601
+    % Created: 13:31:29 12/11/18 GMT
+    % Exported: 13:31:29 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Image file: ../_kallysto/figs/README.ipynb/SalesByRepBarChart.pdf
@@ -534,9 +534,9 @@ The Latex definition (from `latex_report/defs/README.ipynb/_definitions.tex`) fo
 !tail -n 12 sandbox/latex_report/_kallysto/defs/README.ipynb/_definitions.tex
 ```
 
-    % Uid: 1544533351.185062
-    % Created: 13:02:31 12/11/18 GMT
-    % Exported: 13:02:31 12/11/18 GMT
+    % Uid: 1544535090.548393
+    % Created: 13:31:30 12/11/18 GMT
+    % Exported: 13:31:30 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Data file: ../_kallysto/data/README.ipynb/TotalSales.txt
@@ -1031,14 +1031,11 @@ We automatically produce the repo README file from this notebook.
     [NbConvertApp] Converting notebook README.ipynb to markdown
     [NbConvertApp] Support files will be in README_files/
     [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Making directory README_files
-    [NbConvertApp] Writing 40923 bytes to README.md
+    [NbConvertApp] Writing 32159 bytes to README.md
 
 
 ## Cleanup
+Delete the sandbox.
 
 
 ```python
