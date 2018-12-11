@@ -381,7 +381,9 @@ class Figure(Export):
         self.format = format
         self.text_width = text_width
 
-        self.data_file = "{}.csv".format(name)          # The source-data file.
+        # The source-data file; use .fig to tag as fig datafile.
+        self.data_file = "{}.fig.csv".format(name)     
+        
         self.image_file = "{}.{}".format(name, format)  # The figure image.
 
         self.fig_scale = 1     # Scaling of figures.
