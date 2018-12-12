@@ -409,7 +409,7 @@ class Figure(Export):
 
         
         return ('{log_id},{logged},{title},{notebook},'
-                        '{export},{figs_path},{data_path},').format(
+                        '{export},{figs_path},{data_path}s').format(
             log_id=self.uid,
             logged=strftime('%X %x %Z'),
             title=pub.title,
