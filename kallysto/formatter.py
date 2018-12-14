@@ -101,7 +101,7 @@ class Latex():
                '\\providecommand{{\{name}}}{{\n'
                'dummy}}\n'
                '\\renewcommand{{\{name}}}{{\n'
-               '    \\begin{{table}}[h]\n'
+               '    \\begin{{table}}[htbp]\n'
                '        \\centering\n'
                '        {definition}\n'
                '        \\caption{{{caption}}}\n'
