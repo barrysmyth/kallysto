@@ -126,7 +126,7 @@ class Export():
             
         else: 
             self.display_logger.warning(
-                'Could not generate %s. Missing %s.', image_file_from_nb, save_method)
+                'Could not generate %s. Missing %s.', filepath, save_method)
 
     
     def path_to(self, from_loc, to_loc):
