@@ -40,6 +40,7 @@ First we begin with a few imports, including the all-important Kallyso imports, 
 
 
 ```python
+# Some basic imports needed for the case-study/example usage below.
 import os
 from shutil import rmtree
 import pandas as pd
@@ -55,9 +56,12 @@ import kallysto.markdown
 
 
 ```python
-rmtree('sandbox', ignore_errors=True) # Del pre-existing sandbox if it exists.
-os.mkdir('sandbox')  # Create fresh sandbox.
+# Create a fresh sandbox; removing an old one if it exists already.
+rmtree('sandbox', ignore_errors=True)
+os.mkdir('sandbox')
 
+
+# Looks its emty ...
 !tree sandbox
 ```
 
@@ -286,9 +290,9 @@ Notice too how the Latex defintion includes the export id as part of its meta-da
 !tail -n 35 sandbox/latex_report/_kallysto/defs/README.ipynb/_definitions.tex 
 ```
 
-    % Uid: 1544536635.945051
-    % Created: 13:57:15 12/11/18 GMT
-    % Exported: 13:57:15 12/11/18 GMT
+    % Uid: 1544562962.368504
+    % Created: 21:16:02 12/11/18 GMT
+    % Exported: 21:16:02 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Data file: ../_kallysto/data/README.ipynb/SalesByRepTable.csv
@@ -347,7 +351,7 @@ sales_by_rep_bar_chart > latex_report;
 ![png](README_files/README_21_0.png)
 
 
-The image is stored in `latex_report/figs/README.ipynb/` as `SalesByRepBarChart.pdf` and the dataframe is stored in `latex_report/data/README.ipynb/`, as shown below.
+The image is stored in `latex_report/figs/README.ipynb/` as `SalesByRepBarChart.pdf` and the figure's dataframe is stored in `latex_report/data/README.ipynb/`, as shown below; note that to distinguish data files associated with figures from those that are due to table exports, the former are tagged with a `.fig` designation.
 
 
 ```python
@@ -360,7 +364,7 @@ The image is stored in `latex_report/figs/README.ipynb/` as `SalesByRepBarChart.
         ├── _kallysto
         │   ├── data
         │   │   └── README.ipynb
-        │   │       ├── SalesByRepBarChart.csv
+        │   │       ├── SalesByRepBarChart.fig.csv
         │   │       └── SalesByRepTable.csv
         │   ├── defs
         │   │   └── README.ipynb
@@ -383,13 +387,13 @@ The image is stored in `latex_report/figs/README.ipynb/` as `SalesByRepBarChart.
 ```
 
     
-    % Uid: 1544536638.1019561
-    % Created: 13:57:18 12/11/18 GMT
-    % Exported: 13:57:18 12/11/18 GMT
+    % Uid: 1544562962.854937
+    % Created: 21:16:02 12/11/18 GMT
+    % Exported: 21:16:02 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Image file: ../_kallysto/figs/README.ipynb/SalesByRepBarChart.pdf
-    % Data file: ../_kallysto/data/README.ipynb/SalesByRepBarChart.csv
+    % Data file: ../_kallysto/data/README.ipynb/SalesByRepBarChart.fig.csv
     \providecommand{\SalesByRepBarChart}{
     dummy}
     \renewcommand{\SalesByRepBarChart}{
@@ -436,7 +440,7 @@ Value exports are written to the Kallysto data store as simple text files, conta
         ├── _kallysto
         │   ├── data
         │   │   └── README.ipynb
-        │   │       ├── SalesByRepBarChart.csv
+        │   │       ├── SalesByRepBarChart.fig.csv
         │   │       ├── SalesByRepTable.csv
         │   │       └── TotalSales.txt
         │   ├── defs
@@ -461,9 +465,9 @@ The Latex definition (from `latex_report/defs/README.ipynb/_definitions.tex`) fo
 !tail -n 12 sandbox/latex_report/_kallysto/defs/README.ipynb/_definitions.tex
 ```
 
-    % Uid: 1544536640.17378
-    % Created: 13:57:20 12/11/18 GMT
-    % Exported: 13:57:20 12/11/18 GMT
+    % Uid: 1544562963.83836
+    % Created: 21:16:03 12/11/18 GMT
+    % Exported: 21:16:03 12/11/18 GMT
     % Title: latex_report
     % Notebook: ../../../README.ipynb
     % Data file: ../_kallysto/data/README.ipynb/TotalSales.txt
@@ -955,10 +959,16 @@ We automatically produce the repo README file from this notebook.
 !jupyter nbconvert --to markdown README.ipynb
 ```
 
+    [NbConvertApp] Converting notebook README.ipynb to markdown
+    [NbConvertApp] Support files will be in README_files/
+    [NbConvertApp] Making directory README_files
+    [NbConvertApp] Writing 34488 bytes to README.md
+
+
 ## Cleanup
 Delete the sandbox.
 
 
 ```python
-rmtree('sandbox')
+rmtree('sandbox', ignore_errors=True)
 ```
